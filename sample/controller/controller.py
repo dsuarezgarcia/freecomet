@@ -20,7 +20,7 @@ from pathvalidate import ValidationError, validate_filename
 from dialog_response import DialogResponse
 from singleton import Singleton
 
-from view.view_store import CometView
+from view.view_store import CometView, SampleParameters
 
 from controller.algorithm_settings_dto import AlgorithmSettingsDto
 from controller.canvas_state import CanvasSelectionState, CanvasEditingState, \
@@ -29,7 +29,7 @@ from controller.threads import ThreadWithException
 import controller.commands as commands
 
 import model.utils as utils
-from model.model import Model
+from model.model import Model, Sample, Comet
 from model.canvas_model import CanvasModel, contours_are_nested
 
 
@@ -137,16 +137,25 @@ class Controller(object):
 
             comet_view_list = self.comet_list_to_comet_view_list(
                 sample.get_comet_list())
-            view_store.append( (sample_id, 
-                                sample.get_name(), 
-                                utils.image_to_pixbuf(sample.get_image()),
-                                comet_view_list)
-                             ) 
+            view_store.append(
+                (sample_id, 
+                 sample.get_name(), 
+                 utils.image_to_pixbuf(sample.get_image()),
+                 comet_view_list
+                )
+            ) 
        
+        # Restart View
+        self.__view.restart()
+        # Update View MainWindow title with openned project's name
         self.__view.get_main_window().set_title(
-            self.__build_application_window_title())  
-        self.__view.open_project(view_store)
-
+            self.__build_application_window_title())       
+        # Add new Samples on View
+        for (sample_id, sample_name, pixbuf, 
+             comet_view_list) in view_store:
+             
+             self.__add_sample_view(sample_id, sample_name, 
+                SampleParameters(pixbuf, comet_view_list), None)
 
         # Current project is not a 'new project'
         self.__flag_project_is_new = False
@@ -265,13 +274,13 @@ class Controller(object):
         self.__thread.start()
  
     ''' 'Add new comet' use case. '''
-    def add_new_comet_use_case(self, sample_id, comet_contour, head_contour):
+    def add_new_comet_use_case(self, sample_id, tail_contour, head_contour):
         
         # Prepare the AddComet command
         command = commands.AddCometCommand(self)
 
         # Add comet
-        comet_id = self.__add_new_comet(sample_id, comet_contour, head_contour)
+        comet_id = self.add_new_comet(sample_id, tail_contour, head_contour)
 
         # Add AddComet command to the stack
         command.set_data((sample_id, comet_id, 
@@ -291,19 +300,6 @@ class Controller(object):
         command.set_data((sample_id, comet_copy, pos))
         self.__add_command(command)
 
-    ''' 'Remove comet tail' use case. '''
-    def remove_comet_tail_use_case(self, sample_id, comet_id):
-
-        # Prepare the RemoveCometTail command
-        command = commands.RemoveCometTailCommand(self)
-
-        # Remove comet tail
-        comet_contour = self.remove_comet_tail(sample_id, comet_id)
-
-        # Add RemoveCometTail command to the stack
-        command.set_data((sample_id, comet_id, comet_contour))
-        self.__add_command(command)
-
     ''' 'Edit comet contour' use case. '''
     def edit_comet_contours_use_case(self, sample_id, comet_id, tail_contour, head_contour):
     
@@ -315,7 +311,20 @@ class Controller(object):
         data = (comet_id, old_tail_contour, old_head_contour)
         # Add UpdateCometContours Command to the undo stack
         command.set_data((sample_id, data))                      
-        self.__add_command(command) 
+        self.__add_command(command)
+        
+    ''' 'Remove comet tail' use case. '''
+    def remove_comet_tail_use_case(self, sample_id, comet_id):
+
+        # Prepare the RemoveCometTail command
+        command = commands.RemoveCometTailCommand(self)
+
+        # Remove comet tail
+        tail_contour = self.remove_comet_tail(sample_id, comet_id)
+
+        # Add RemoveCometTail command to the stack
+        command.set_data((sample_id, comet_id, tail_contour))
+        self.__add_command(command)
  
     ''' 'About' use case. '''
     def about_use_case(self):      
@@ -413,6 +422,32 @@ class Controller(object):
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 #                                   Methods                                   # 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+
+    ''' 
+        Removes the tail of the comet with given ID that belongs to the sample
+        with given ID.
+    '''
+    def remove_comet_tail(self, sample_id, comet_id):
+
+        # Model
+        tail_contour = self.__remove_comet_tail_model(sample_id, comet_id) 
+        # View
+        self.__remove_comet_tail_view(sample_id, comet_id)
+        return tail_contour
+        
+    ''' 'remove_comet_tail' Model behaviour. '''    
+    def __remove_comet_tail_model(self, sample_id, comet_id):
+    
+        return self.__model.get_sample(sample_id).\
+                   get_comet(comet_id).remove_tail()
+    
+    ''' 'remove_comet_tail' View behaviour. '''
+    def __remove_comet_tail_view(self, sample_id, comet_id):
+            
+        comet_view = self.__view.get_view_store().get_comet_view(sample_id, comet_id)
+        comet_view.set_scaled_tail_contour(None)
+        self.__view.get_main_window().get_canvas().update()
+        self.__view.get_main_window().get_selection_window().update()
 
     ''' Updates the Save Button sensitivity. '''
     def update_save_button_sensitivity(self):
@@ -523,7 +558,7 @@ class Controller(object):
                     samples_comet_view_lists.append(
                         (sample_id, self.comet_list_to_comet_view_list(comet_list)))
                 # Replace in View
-                GLib.idle_add(self.__view.replace_samples_comet_view_list,
+                GLib.idle_add(self.replace_samples_comet_view_list,
                     samples_comet_view_lists)
 
                 # Add AnalyzeSamples command to the stack
@@ -533,6 +568,31 @@ class Controller(object):
         finally:
 
             GLib.idle_add(self.__view.close_analyze_samples_loading_window)
+            
+    ''' Sets the given comet list for the sample with given ID. '''
+    def replace_samples_comet_view_list(self, samples_comet_view_lists):
+
+        for (sample_id, comet_view_list) in samples_comet_view_lists:    
+
+            sample_parameters = self.__view.get_view_store().get_store()[sample_id]
+            # Set new list
+            sample_parameters.set_comet_view_list(comet_view_list)
+            # Set number of comets in sample
+            self.__view.get_main_window().get_samples_view().\
+                set_sample_number_of_comets(sample_id, len(comet_view_list), 
+                    self.__model.get_sample(sample_id).get_analyzed()
+            )       
+                        
+        
+        # Scale CometView objects to current Sample scale ratio
+        scale_ratio = self.get_sample_zoom_value(
+                        self.__active_sample_id)
+        self.scale_sample_comet_contours(
+            self.__active_sample_id, scale_ratio) 
+
+        # Update
+        self.__view.get_main_window().get_canvas().update()
+        self.__view.get_main_window().get_selection_window().update()
 
     ''' 
         Sets the comet contours with given ID that belongs to the sample with
@@ -567,7 +627,7 @@ class Controller(object):
         self.__model.flip_sample_image(sample_id)
         
         # Update View
-        sample_parameters = self.__view.get_store()[sample_id]
+        sample_parameters = self.__view.get_view_store().get_store()[sample_id]
         # Flip Pixbufs
         sample_parameters.set_original_pixbuf(
             sample_parameters.get_original_pixbuf().flip(True))
@@ -610,7 +670,7 @@ class Controller(object):
         self.__model.invert_sample_image(sample_id)
         
         # Update View
-        sample_parameters = self.__view.get_store()[sample_id]
+        sample_parameters = self.__view.get_view_store().get_store()[sample_id]
         image = self.__model.get_sample(sample_id).get_image()       
         scale_ratio = self.get_sample_zoom_value(sample_id)
 
@@ -639,20 +699,37 @@ class Controller(object):
     '''
     def add_sample(self, sample, sample_parameters, pos=None):
 
-        # Add to Model
+        # Model
         self.__model.add_sample(sample)
-        # Add to View
-        self.__view.add_sample(
+        # View
+        self.__add_sample_view(
             sample.get_id(), sample.get_name(), sample_parameters, pos)
+            
+    ''' 'add_sample' View behaviour. '''        
+    def __add_sample_view(self, sample_id, sample_name, sample_parameters, pos):
+
+        # Add to MainWindow's SamplesView   
+        self.__view.get_main_window().get_samples_view().add_sample(
+            sample_id, sample_name, pos)
+        # Add to ViewStore
+        self.__view.get_view_store().add(sample_id, sample_parameters)
+        # Update SamplesView
+        self.__view.get_main_window().get_samples_view().set_sample_number_of_comets(
+                sample_id, len(self.__model.get_sample(sample_id).get_comet_list()), 
+                self.__model.get_sample(sample_id).get_analyzed()
+        )
 
     ''' Renames the sample with given ID with given name. '''
     def rename_sample(self, sample_id, sample_name):
 
         name = self.__model.get_store()[sample_id].get_name()
-        # Rename in Model
+        
+        # Model
         self.__model.rename_sample(sample_id, sample_name)
-        # Rename in View
-        self.__view.rename_sample(sample_id, sample_name)
+        # View
+        self.__view.get_main_window().get_samples_view().rename_sample(
+            sample_id, sample_name)
+
         return name
 
     ''' Deletes the sample with given ID. '''
@@ -669,29 +746,57 @@ class Controller(object):
         return (sample_copy, sample_parameters, pos)
 
     '''
-        Adds a new comet with given contours to the sample with given ID. 
+        Creates and adds a new Comet with given contours to the Sample with
+        given ID. 
     '''
-    def __add_new_comet(self, sample_id, comet_contour, head_contour):
+    def add_new_comet(self, sample_id, tail_contour, head_contour):
 
-        # Add to Model
-        comet_id = self.__model.get_sample(sample_id).add_new_comet(
-            comet_contour, head_contour)
-        # Add to View
-        self.__view.add_comet(sample_id,
-            CometView(comet_id, comet_contour, head_contour))
-
-        return comet_id
+        # Create new Comet
+        comet = Comet(
+                    self.__model.get_sample(sample_id), 
+                    tail_contour, 
+                    head_contour
+                )
+        # Add Comet
+        self.add_comet(sample_id, comet, None)
+        # Return its ID
+        return comet.get_id()
 
     '''
-        Adds given comet to the sample with given ID at the given position. 
+        Adds given Comet to the Sample with given ID at the given position. 
     '''
     def add_comet(self, sample_id, comet, pos):
 
-        # Add to Model
+        # Model
         self.__model.get_sample(sample_id).add_comet(comet, pos)
-        # Add to View
-        self.__view.add_comet(
-            sample_id, self.__comet_to_comet_view(comet), pos)
+        # View
+        self.__add_comet_view(sample_id, comet.get_id(),
+            comet.get_tail_contour(), comet.get_head_contour(), pos)
+            
+    ''' 'add_comet' View behaviour. '''        
+    def __add_comet_view(self, sample_id, comet_id, tail_contour, head_contour, pos):        
+
+        scale_value = self.get_sample_zoom_value(sample_id)
+        
+        # Scale tail contour
+        scaled_tail_contour = None
+        if tail_contour is not None:           
+            scaled_tail_contour = utils.scale_contour(tail_contour, scale_value)
+        # Scale head contour
+        scaled_head_contour = utils.scale_contour(head_contour, scale_value)
+
+        # Create and add CometView
+        comet_view = CometView(comet_id, scaled_tail_contour, scaled_head_contour)
+        sample_parameters = self.__view.get_view_store().get_store()[sample_id]
+        sample_parameters.add_comet(comet_view, pos)
+
+        # Update SamplesView
+        self.__view.get_main_window().get_samples_view().set_sample_number_of_comets(
+            sample_id, len(sample_parameters.get_comet_view_list()),
+            self.__model.get_sample(sample_id).get_analyzed()
+        ) 
+        # Update Canvas
+        self.__view.get_main_window().get_canvas().update()
 
     '''
         Deletes the comet with given ID that belongs to the sample with given
@@ -699,55 +804,96 @@ class Controller(object):
     '''
     def delete_comet(self, sample_id, comet_id):
 
-        # Delete from Model
+        # Model
         (comet_copy, pos) = self.__model.delete_comet(sample_id, comet_id)
-        # Delete from View
-        self.__view.delete_comet(sample_id, comet_id)
+        # View
+        self.__delete_comet_view(sample_id, comet_id)
         return (comet_copy, pos)
+        
+    ''' 'delete_comet' View behaviour. '''   
+    def __delete_comet_view(self, sample_id, comet_id):
 
-    ''' 
-        Removes the tail of the comet with given ID that belongs to the sample
-        with given ID.
+        # Delete comet
+        self.__view.get_view_store().get_store()[sample_id].delete_comet(comet_id)  
+        # Update SamplesView
+        self.__view.get_main_window().get_samples_view().set_sample_number_of_comets(
+            sample_id, len(self.__model.get_sample(sample_id).get_comet_list()),
+            self.__model.get_sample(sample_id).get_analyzed()
+        )
+        # Update Canvas
+        self.__view.get_main_window().get_canvas().update()
+        # Update SelectionWindow
+        self.__view.get_main_window().get_selection_window().update()     
+
     '''
-    def remove_comet_tail(self, sample_id, comet_id):
-
-        # Remove from Model
-        comet_contour = self.__model.get_sample(sample_id).\
-                           get_comet(comet_id).remove_tail()
-
-        # Remove from View
-        self.__view.remove_comet_tail(sample_id, comet_id)
-        return comet_contour
-
+        Adds the tail contour to the Comet with given ID that belongs to the
+        Sample with given ID.
     '''
-        Adds the tail contour to the comet with given ID that belongs to the
-        sample with given ID.
-    '''
-    def add_comet_tail(self, sample_id, comet_id, comet_contour):
+    def add_comet_tail(self, sample_id, comet_id, tail_contour):
     
-        # Add to Model
+        # Model
+        self.__add_comet_tail_model(sample_id, comet_id, tail_contour)
+        # View
+        self.__add_comet_tail_view(sample_id, comet_id, tail_contour)
+        
+    ''' 'add_comet_tail' Model behaviour. '''    
+    def __add_comet_tail_model(self, sample_id, comet_id, tail_contour):    
         self.__model.get_sample(sample_id).get_comet(comet_id).\
-            add_tail(comet_contour)
-        # Add to View
-        self.__view.add_comet_tail(sample_id, comet_id, comet_contour)
+            add_tail(tail_contour)
+           
+    ''' 'add_comet_tail' View behaviour. '''       
+    def __add_comet_tail_view(self, sample_id, comet_id, tail_contour):        
 
+        scale_value = self.get_sample_zoom_value(sample_id)
+
+        comet_view = self.__view.get_view_store().get_comet_view(sample_id, comet_id)
+        comet_view.set_scaled_tail_contour(
+            utils.scale_contour(tail_contour, scale_value)
+        )
+                
+        self.__view.get_main_window().get_canvas().update()        
+ 
     '''
         Replaces the comet list of the given samples with the given comet
         lists.
     '''
     def update_samples_comet_list(self, samples_comet_lists):
             
-        # Replace in Model
+        # Model
         data = self.__model.update_samples_comet_list(samples_comet_lists)
-
-        samples_comet_view_lists = []
-        for (sample_id, comet_list, _) in samples_comet_lists:
-            samples_comet_view_lists.append(
-                (sample_id, self.comet_list_to_comet_view_list(comet_list)))
-
-        # Replace in View
-        self.__view.replace_samples_comet_view_list(samples_comet_view_lists)
+        # View
+        self.__update_samples_comet_list_view(samples_comet_lists)
         return data
+     
+    ''' Updates the Comets of the Samples. '''
+    def __update_samples_comet_list_view(self, samples_comet_lists):
+    
+        samples_comet_view_lists = []
+        
+        for (sample_id, comet_list, _) in samples_comet_lists:
+            samples_comet_view_lists.append((
+                sample_id,
+                self.comet_list_to_comet_view_list(comet_list)
+            ))
+       
+        for (sample_id, comet_view_list) in samples_comet_view_lists:    
+
+            # Set new CometView list
+            self.__view.get_view_store().get_store()[sample_id].set_comet_view_list(
+                comet_view_list)
+            # Set number of comets in SamplesView
+            self.__view.get_main_window().get_samples_view().\
+                set_sample_number_of_comets(sample_id, len(comet_view_list), 
+                    self.__model.get_sample(sample_id).get_analyzed()
+            )       
+                        
+        # Scale Comet contours according to Sample scale value activated
+        scale_value = self.get_sample_zoom_value(self.__active_sample_id)
+        self.scale_sample_comet_contours(self.__active_sample_id, scale_value)
+        
+        # Update View
+        self.__view.get_main_window().get_canvas().update()
+        self.__view.get_main_window().get_selection_window().update()
 
     ''' Returns the project filename. '''
     def get_project_filename(self):
@@ -823,8 +969,6 @@ class Controller(object):
         self.__update(False)
         self.__clear_command_stacks()   
 
-
-
     ''' Add new samples. '''
     def __add_new_samples(self, filepaths):
 
@@ -845,16 +989,15 @@ class Controller(object):
                 i+1, len(filepaths))
 
             sample_name = get_valid_name(filename, self.__model.get_store())
+            
             try:
-                sample_image = utils.read_image(filepaths[i])[1]
-
-                # Add to Model
-                sample_id = self.__model.add_new_sample(sample_name, sample_image)
-                # Add to View
-                GLib.idle_add(self.__view.add_new_sample, sample_id, sample_name,
-                    utils.image_to_pixbuf(sample_image))
-
-                added_samples_ids.append(sample_id)
+            
+                sample_image = utils.read_image(filepaths[i])[1]                    
+                sample = Sample(sample_name, sample_image)
+                sample_parameters = SampleParameters(utils.image_to_pixbuf(sample_image))
+                GLib.idle_add(self.add_sample, sample, sample_parameters)
+                added_samples_ids.append(sample.get_id())
+                
             except Exception as err:
                 print(err)
                 print("ERROR: image " + filename + " couldn't be added.")
@@ -885,18 +1028,11 @@ class Controller(object):
         for comet in comet_list:
             comet_view_list.append(self.__comet_to_comet_view(comet))
         return comet_view_list
-
+        
     ''' Parses a Comet to a CometView '''
     def __comet_to_comet_view(self, comet):
         return CometView(comet.get_id(), comet.get_tail_contour(),
-            comet.get_head_contour())
-
-    ''' 
-        Returns the value wheter the sample with given ID was already
-        analyzed or not.
-    '''
-    def get_sample_analyzed_flag(self, sample_id):
-        return self.__model.get_sample(sample_id).get_analyzed()
+            comet.get_head_contour())    
 
     ''' Sets the analyzed flag value of the Sample with given ID. '''
     def set_sample_analyzed_flag(self, sample_id, analyzed):
@@ -1068,43 +1204,86 @@ class Controller(object):
         # View behaviour on sample activated
         self.__view.on_sample_activated(sample_id)
 
-    ''' Scales the active Sample Comets contours and DelimiterPoints. '''
-    def scale_active_sample_comets_contours(self, requested_scale_ratio, scale_ratio):
-        self.scale_sample_comets_contours(self.__active_sample_id, requested_scale_ratio, scale_ratio)
+    ''' 
+        Scales the active Sample Comet contours and CanvasContours 
+        DelimiterPoints.
+    '''
+    def scale_active_sample_comets(self, requested_scale_value):
+        self.scale_sample_comets(self.__active_sample_id, requested_scale_value)
         
-    ''' Scales the Comets contours and DelimiterPoints of Sample with given ID. '''    
-    def scale_sample_comets_contours(self, sample_id, requested_scale_ratio, scale_ratio):    
+    ''' Scales the Comet contours and CanvasContours DelimiterPoints of Sample
+        with given ID.
+    '''    
+    def scale_sample_comets(self, sample_id, requested_scale_ratio):    
     
-        sample_parameters = self.__view.get_store()[sample_id]
+        ''' TODO: escalar los cometas del modelo y sustituirlos en la Vista. '''
+    
+        # Scale Comets
+        self.scale_sample_comet_contours(sample_id, requested_scale_ratio)
+        
+        # Scale 'Free Editing' and 'Comet being edited' CanvasContours
+        self.scale_sample_delimiter_points(sample_id, requested_scale_ratio)
+       
+    ''' 
+        Scales all Comet contours of Sample with given ID and creates
+        their corresponding CometView objects.
+    '''
+    def scale_sample_comet_contours(self, sample_id, scale_ratio):
+          
         sample = self.__model.get_sample(sample_id)
+
+        comet_view_list = self.comet_list_to_comet_view_list(
+                              sample.get_comet_list())
+        
         # Scale Comets contours
-        for comet in sample_parameters.get_comet_view_list():
+        for comet_view in comet_view_list:
 
             # Scale the Comet tail contour
-            tail_contour = sample.get_comet(
-                               comet.get_id()).get_tail_contour()
-            if tail_contour is not None:
-                comet.set_scaled_tail_contour(
-                    utils.scale_contour(tail_contour, requested_scale_ratio))
+            if comet_view.get_scaled_tail_contour() is not None:
+                tail_contour = comet_view.get_scaled_tail_contour()
+                comet_view.set_scaled_tail_contour(
+                    utils.scale_contour(
+                        tail_contour,
+                        scale_ratio
+                    )
+                )
                 
             # Scale the head contour
-            head_contour = sample.get_comet(
-                               comet.get_id()).get_head_contour()
-            comet.set_scaled_head_contour(
-                utils.scale_contour(head_contour, requested_scale_ratio))
-    
+            head_contour = comet_view.get_scaled_head_contour()
+            comet_view.set_scaled_head_contour(              
+                utils.scale_contour(
+                    head_contour,
+                    scale_ratio
+                )
+            )
+            
+        # Set new CometView list
+        self.__view.get_view_store().get_store()[sample_id].set_comet_view_list(
+            comet_view_list)
+        
+    ''' Scales all DelimiterPoints of Sample with given ID. '''
+    def scale_sample_delimiter_points(self, sample_id, requested_scale_ratio):
+
+        current_scale_ratio = self.get_sample_zoom_value(sample_id)
+        final_scale_ratio = requested_scale_ratio / current_scale_ratio
+        sample = self.__model.get_sample(sample_id)
+                                
         # Scale 'Free editing' DelimiterPoints 
         for (_, contour) in sample.get_tail_contour_dict().items():
-            utils.scale_delimiter_point_list(contour.get_delimiter_point_list(), scale_ratio)
+            utils.scale_delimiter_point_list(
+                contour.get_delimiter_point_list(), final_scale_ratio)
         for (_, contour) in sample.get_head_contour_dict().items():
-            utils.scale_delimiter_point_list(contour.get_delimiter_point_list(), scale_ratio)
+            utils.scale_delimiter_point_list(
+                contour.get_delimiter_point_list(), final_scale_ratio)
 
         # Scale 'Comet being edited' DelimiterPoints
         for (_, contour) in sample.get_comet_being_edited_tail_contour_dict().items():
-            utils.scale_delimiter_point_list(contour.get_delimiter_point_list(), scale_ratio)
+            utils.scale_delimiter_point_list(
+                contour.get_delimiter_point_list(), final_scale_ratio)
         for (_, contour) in sample.get_comet_being_edited_head_contour_dict().items():
-            utils.scale_delimiter_point_list(contour.get_delimiter_point_list(), scale_ratio)
-
+            utils.scale_delimiter_point_list(
+                contour.get_delimiter_point_list(), final_scale_ratio)
+    
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 #                               Canvas Methods                                #
@@ -1128,7 +1307,7 @@ class Controller(object):
     
         comet_id = self.get_active_sample_selected_comet_id()
         if comet_id is not None:
-            return self.__view.get_sample_selected_comet_view(
+            return self.__get_sample_selected_comet_view(
                 self.__active_sample_id, comet_id)
             
     ''' Returns the active sample selected comet identifier. '''
@@ -1165,7 +1344,7 @@ class Controller(object):
             
     ''' Returns the Brush object. '''
     def get_brush(self):
-        return self.__view.get_canvas().get_brush()
+        return self.__view.get_main_window().get_canvas().get_brush()
 
     ''' Returns the color for drawing Tail contours. '''
     def get_tail_color(self):
@@ -1177,15 +1356,15 @@ class Controller(object):
         
     ''' Returns the 'build tail contour' Button. '''    
     def get_build_tail_contour_button(self):
-        return self.__view.get_canvas().get_build_tail_contour_button()
+        return self.__view.get_main_window().get_canvas().get_build_tail_contour_button()
         
     ''' Returns the 'build head contour' Button. '''     
     def get_build_head_contour_button(self):
-        return self.__view.get_canvas().get_build_head_contour_button()
+        return self.__view.get_main_window().get_canvas().get_build_head_contour_button()
      
     ''' Returns the sample's comet being edited identifier with given ID. ''' 
     def get_sample_comet_being_edited_id(self, sample_id):
-        return self.__model.get_sample(sample_id).get_comet_being_edited_id()
+        return self.__model.get_sample(sample_id).get_comet_being_edited_id()    
         
     ''' Behaviour when the user builds a valid comet. '''
     def on_add_comet(self, tail_contour, head_contour):
@@ -1200,15 +1379,20 @@ class Controller(object):
             # Parse to opencv contour
             coordinates_list = [point.get_coordinates() for point in
                                 tail_contour.get_delimiter_point_list()]
-            tail_contour = utils.list_to_contour(utils.scale_contour(
-                                coordinates_list, scale_ratio))
+            tail_contour = utils.scale_contour(
+                               utils.list_to_contour(coordinates_list),
+                               scale_ratio
+                           )
+
 
         # [2] Build Head contour                
         # Parse to opencv contour
         coordinates_list = [point.get_coordinates() for point in
                             head_contour.get_delimiter_point_list()]           
-        head_contour = utils.list_to_contour(utils.scale_contour(
-                           coordinates_list, scale_ratio))
+        head_contour = utils.scale_contour(
+                           utils.list_to_contour(coordinates_list),
+                           scale_ratio
+                       )
                            
         # Merge contours
         if tail_contour is not None:
@@ -1224,7 +1408,7 @@ class Controller(object):
         # Select comet
         self.__model.select_comet(sample_id, comet_id)
         # Update View
-        self.__view.get_canvas().update()
+        self.__view.get_main_window().get_canvas().update()
         self.__view.get_main_window().get_selection_window().update()
 
                 
@@ -1280,7 +1464,11 @@ class Controller(object):
     def get_sample_zoom_value(self, sample_id):  
     
         return self.get_sample_zoom_model(sample_id)[
-            self.get_sample_zoom_index(sample_id)]        
+            self.get_sample_zoom_index(sample_id)]
+
+    ''' Returns the selected CometView of Sample with given ID. '''
+    def __get_sample_selected_comet_view(self, sample_id, comet_id):
+        return self.__view.get_view_store().get_comet_view(sample_id, comet_id)            
             
     ''' Behaviour when a comet is no longer being edited by the user. '''        
     def no_comet_being_edited_anymore(self):

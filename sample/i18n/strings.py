@@ -170,7 +170,7 @@ class Strings(object):
         self.DIALOG_SAVE_BEFORE_ACTION_LABEL = _(
             "Hay cambios en {} sin guardar.\n¿Desea guardar antes de continuar?")
         self.DIALOG_ABOUT_COMMENTS = _(
-            "FreeComet es una aplicación gratuita y de código abierto para el análisis de imágenes del ensayo del cometa.")
+            "Originalmente creada como un Trabajo de Fin de Grado, FreeComet es una aplicación gratuita y de código abierto para trabajar con imágenes del ensayo del cometa.")
         self.DIALOG_OPEN_PROJECT_TITLE = _("Abrir proyecto")
         self.DIALOG_ADD_SAMPLES_TITLE = _("Añadir muestras")
         self.DIALOG_SAVE_PROJECT_AS_TITLE = _("Guardar proyecto")

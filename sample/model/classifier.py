@@ -23,7 +23,7 @@ class Classifier:
 
 class DecisionTree(Classifier):
 
-    filename = 'classifier_model.joblib'
+    filename = 'model/classifier_model.joblib'
 
     def __init__(self):
         try:

@@ -24,10 +24,8 @@ from view.windows import CometParametersWindow, MainSettingsWindow, SelectionWin
                     AnalyzeSamplesLoadingWindow
 from view.view_store import ViewStore, SampleParameters
 from view.zoom_tool import ZoomTool
-from model.model import AlgorithmSettings
-import model.utils as utils
+from controller.algorithm_settings_dto import AlgorithmSettingsDto
 from observer import Observer
-
 
 
 
@@ -36,7 +34,6 @@ from observer import Observer
 # 	View                                                                      #
 #                                                                             #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
-
 
 class View(Observer):
 
@@ -699,445 +696,6 @@ class View(Observer):
 
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
-#                                  Methods                                    #
-# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
-
-    ''' Start the GUI. '''
-    def start(self):
-
-        self.__main_window.show()
-        self.__main_window.get_selection_window().hide()
-        self.__main_window.get_samples_view().get_sorting_arrow_icon().\
-            set_visible(False)   
-        self.__controller.canvas_transition_to_selection_state()
-        self.__main_window.get_canvas().hide_editing_buttons()
-        
-    ''' Restarts components parameters. '''
-    def restart(self):
-    
-        self.__view_store.restart()
-        self.__analyze_samples_window.restart()
-        self.__main_settings_window.restart()
-        self.__main_window.restart()
-        self.__analyze_samples_loading_window.restart()
-        
-    ''' Ends the application execution. '''
-    def exit(self):
-        Gtk.main_quit()
-
-    ''' Observer.update() implementation method. '''
-    def update(self, store):
-
-        if len(store) == 0:
-            self.on_empty_store()
-        else:
-            self.on_store_not_empty(self.__controller.get_active_sample_id())
-
-        self.__set_info_label_text(len(store))
-        
-    ''' View 'Open project' behaviour. '''
-    def open_project(self, store):
-
-        # Restart app
-        self.restart()
-
-        # Add new samples
-        for (sample_id, sample_name, pixbuf, 
-             comet_view_list) in store:
-           
-            self.add_new_sample(sample_id, sample_name,
-                pixbuf, comet_view_list)
-
-    ''' View 'Add sample' behaviour. '''
-    def add_sample(self, sample_id, sample_name, parameters, pos=None):
-       
-        # Add to MainWindow's SamplesView   
-        self.__main_window.get_samples_view().add_sample(
-            sample_id, sample_name, pos)
-        # Add to ViewStore
-        self.__view_store.add(sample_id, parameters)
-        # Update SamplesView
-        sample_parameters = self.__view_store.get_store()[sample_id]
-        self.__main_window.get_samples_view().set_sample_number_of_comets(
-                sample_id, len(sample_parameters.get_comet_view_list()), 
-                self.__controller.get_sample_analyzed_flag(sample_id))
-
-    ''' View 'Add new sample' behaviour. '''
-    def add_new_sample(self, sample_id, sample_name, pixbuf, comet_list=[]):
-
-        sample_parameters = SampleParameters(pixbuf.copy(), comet_list.copy())
-        self.add_sample(sample_id, sample_name, sample_parameters)
-        
-
-    ''' View 'Rename sample' behaviour. '''
-    def rename_sample(self, sample_id, sample_name):
-
-        # Rename on SamplesView
-        self.__main_window.get_samples_view().rename_sample(
-            sample_id, sample_name)
-
-    ''' 'Delete sample' behaviour. '''
-    def delete_sample(self, sample_id):
-
-        # Retrieve sample parameters before removal
-        parameters = self.__view_store.get_sample_parameters(sample_id)
-        # Remove from the SamplesView
-        pos = self.__main_window.get_samples_view().delete_sample(sample_id)
-        # Delete from the ViewStore
-        self.__view_store.remove(sample_id)
-       
-        # If the deleted sample was the 'active sample', the sample that takes 
-        # its position in the list is activated   
-        if ( (len(self.__view_store.get_store())) > 0 and
-             (sample_id == self.__controller.get_active_sample_id()) ):
-            self.__controller.activate_sample()
-        # Return sample's parameters
-        return (parameters, pos)
-
-    ''' Adds a CometView to the sample's comet view list with given ID. '''
-    def add_comet(self, sample_id, comet_view, pos=None):
-
-        scale_ratio = self.__controller.get_sample_zoom_value(sample_id)
-        # Set scaled comet contour
-        tail_contour = self.__get_tail_contour(
-                            sample_id, comet_view.get_id())
-        if tail_contour is not None:           
-            comet_view.set_scaled_tail_contour(
-                utils.scale_contour(tail_contour, scale_ratio))
-
-        # Set scaled head contour
-        head_contour = self.__get_head_contour(
-                           sample_id, comet_view.get_id())
-        comet_view.set_scaled_head_contour(
-            utils.scale_contour(head_contour, scale_ratio))     
-
-        # Add comet
-        sample_parameters = self.__view_store.get_store()[sample_id]
-        sample_parameters.add_comet(comet_view, pos)
-
-        # Update SamplesView
-        self.__main_window.get_samples_view().set_sample_number_of_comets(
-                sample_id, len(sample_parameters.get_comet_view_list()), 
-                self.__controller.get_sample_analyzed_flag(sample_id)) 
-        # Update Canvas
-        self.__update_canvas()
-
-    ''' Deletes the comet with given ID from the sample with given ID. '''
-    def delete_comet(self, sample_id, comet_id):
-
-        # Get sample parameters
-        sample_parameters = self.__view_store.get_store()[sample_id]
-
-        # Delete comet
-        sample_parameters.delete_comet(comet_id)
-        
-        # Update SamplesView
-        self.__main_window.get_samples_view().set_sample_number_of_comets(
-            sample_id, len(sample_parameters.get_comet_view_list()),
-            self.__controller.get_sample_analyzed_flag(sample_id))
-
-        # Update Canvas
-        self.__update_canvas()
-        # Update SelectionWindow
-        self.__update_selection_window() 
-
-    ''' 
-        Deletes the tail from the comet with given ID from the sample with
-        given ID.
-    '''
-    def remove_comet_tail(self, sample_id, comet_id):
-
-        sample_parameters = self.__view_store.get_store()[sample_id] 
-        for comet in sample_parameters.get_comet_view_list():
-            if comet.get_id() == comet_id:
-                comet.set_scaled_tail_contour(None)
-                self.__update_canvas()
-                self.__update_selection_window()
-                break
-
-        return False  
-
-    ''' Adds a tail (comet contour) to the comet of given ID that belongs
-        to the sample with given ID.
-    '''
-    def add_comet_tail(self, sample_id, comet_id, tail_contour):
-
-        scale_ratio = self.__controller.get_sample_zoom_value(sample_id)
-
-        sample_parameters = self.__view_store.get_store()[sample_id]     
-        for comet in sample_parameters.get_comet_view_list():
-            if comet.get_id() == comet_id:           
-                comet.set_scaled_tail_contour(
-                    utils.scale_contour(tail_contour, scale_ratio)
-                )
-                self.__update_canvas()        
-                return True
-
-        return False 
-
-    ''' Builds the CometParametersWindow and shows it. ''' 
-    def see_comet_parameters(self, sample_name, comet_number, 
-                              comet_parameters):
-
-        self.__comet_parameters_window.get_sample_name_label().set_label(
-            sample_name)
-        self.__comet_parameters_window.get_comet_number_value_label().set_label(
-            str(comet_number))
-        self.__comet_parameters_window.get_comet_area_value_label().set_label(
-            str(comet_parameters.get_comet_area()))
-        self.__comet_parameters_window.get_comet_intensity_value_label().set_label(
-            str(comet_parameters.get_comet_average_intensity()))
-        self.__comet_parameters_window.get_comet_length_value_label().set_label(
-            str(comet_parameters.get_comet_length()))
-        self.__comet_parameters_window.get_comet_dna_value_label().set_label(
-            str(comet_parameters.get_comet_dna_content()))
-        self.__comet_parameters_window.get_head_area_value_label().set_label(
-            str(comet_parameters.get_head_area()))
-        self.__comet_parameters_window.get_head_intensity_value_label().set_label(
-            str(comet_parameters.get_head_average_intensity()))
-        self.__comet_parameters_window.get_head_length_value_label().set_label(
-            str(comet_parameters.get_head_length()))
-        self.__comet_parameters_window.get_head_dna_value_label().set_label(
-            str(comet_parameters.get_head_dna_content()))
-        self.__comet_parameters_window.get_head_dna_percentage_value_label().set_label(
-            str(comet_parameters.get_head_dna_percentage()*100))  
-        self.__comet_parameters_window.get_tail_area_value_label().set_label(
-            str(comet_parameters.get_tail_area()))
-        self.__comet_parameters_window.get_tail_intensity_value_label().set_label(
-            str(comet_parameters.get_tail_average_intensity()))
-        self.__comet_parameters_window.get_tail_length_value_label().set_label(
-            str(comet_parameters.get_tail_length()))
-        self.__comet_parameters_window.get_tail_dna_value_label().set_label(
-            str(comet_parameters.get_tail_dna_content()))
-        self.__comet_parameters_window.get_tail_dna_percentage_value_label().set_label(
-            str(comet_parameters.get_tail_dna_percentage()*100))
-        self.__comet_parameters_window.get_tail_moment_value_label().set_label(
-            str(comet_parameters.get_tail_moment()))
-        self.__comet_parameters_window.get_olive_moment_value_label().set_label(
-            str(comet_parameters.get_olive_moment()))
-     
-        self.__comet_parameters_window.show()
-
-    ''' Sets Undo Button sensitivity. ''' 
-    def set_undo_button_sensitivity(self, value):
-        self.__main_window.get_toolbar().get_undo_button().set_sensitive(
-                                                                 value)
-    ''' Sets Redo Button sensitivity. '''
-    def set_redo_button_sensitivity(self, value):
-        self.__main_window.get_toolbar().get_redo_button().set_sensitive(
-                                                                 value)
-    ''' Zoom out the active sample image. '''
-    def zoom_out(self):
-
-        # Make the active Sample grab the focus
-        samples_view = self.__main_window.get_samples_view()
-        row = samples_view.get_sample_row(self.__controller.get_active_sample_id())
-        samples_view.focus_row(row)
-        # Zoom Out
-        self.__main_window.get_zoom_tool().zoom_out()
-        # Save current active sample 'zoom_index' parameter
-        self.__controller.set_sample_zoom_index(self.__controller.get_active_sample_id(), 
-            self.__main_window.get_zoom_tool().get_active())
-
-    ''' Zoom in the active sample image. '''
-    def zoom_in(self):
-
-        # Make the active Sample grab the focus
-        samples_view = self.__main_window.get_samples_view()
-        row = samples_view.get_sample_row(self.__controller.get_active_sample_id())
-        samples_view.focus_row(row)
-        # Zoom In
-        self.__main_window.get_zoom_tool().zoom_in()
-        # Save current active sample 'zoom_index' parameter
-        self.__controller.set_sample_zoom_index(self.__controller.get_active_sample_id(), 
-            self.__main_window.get_zoom_tool().get_active())
-
-    ''' Application window fullscreen mode. '''
-    def fullscreen(self, fullscreen_button):
-
-        # check if the state is the same as Gdk.WindowState.FULLSCREEN, which
-        # is a bit flag
-        is_fullscreen = self.__main_window.get_window().get_window().get_state(
-        ) & Gdk.WindowState.FULLSCREEN != 0
-        if not is_fullscreen:
-            fullscreen_button.set_stock_id(Gtk.STOCK_LEAVE_FULLSCREEN)
-            self.__main_window.fullscreen()
-        else:
-            fullscreen_button.set_stock_id(Gtk.STOCK_FULLSCREEN)
-            self.__main_window.unfullscreen()
-
-    ''' Sets the main application window title. '''
-    def set_application_window_title(self, title):
-        self.__main_window.set_title(title)
-
-    ''' Pops up ContextMenu1. '''
-    def show_context_menu1(self, event):
-        self.__context_menu1.popup(
-            None, None, None, None, event.button, event.time)
-
-    ''' Pops up ContextMenu2. '''
-    def show_context_menu2(self, event):
-        self.__context_menu2.popup(
-            None, None, None, None, event.button, event.time)
-
-    ''' Pops up CanvasContextMenu. '''
-    def show_canvas_context_menu(self, event):
-        self.__canvas_context_menu.popup(
-            None, None, None, None, event.button, event.time)
-
-    ''' Runs LoadSamplesWindow. '''
-    def run_load_samples_window(self):
-        self.__load_samples_window.show()
-
-    ''' Runs AnalyzeSamplesLoadingWindow. '''
-    def run_analyze_samples_loading_window(self):
-        self.__analyze_samples_loading_window.show()
-
-    ''' Closes LoadSamplesWindow. '''
-    def close_load_samples_window(self):
-        self.__load_samples_window.hide()
-
-    ''' Closes AnalyzeSamplesLoadingWindow. '''
-    def close_analyze_samples_loading_window(self):
-        self.__analyze_samples_loading_window.hide()
-
-    ''' 
-        Threading Synchronous method to update the configuration of
-        LoadSamplesWindow.
-    '''
-    def update_load_samples_window(self, bottom_label, top_label, n, n_total):
-
-        self.__load_samples_window.get_top_label().set_label(top_label)
-        self.__load_samples_window.get_bottom_label().set_label(bottom_label)
-        self.__load_samples_window.get_progress_bar().set_fraction(n/n_total)
-
-    ''' 
-        Threading Synchronous method to update the configuration of
-        AnalyzeSamplesLoadingWindow.
-    '''
-    def update_analyze_samples_loading_window(
-                                    self, top_label, bottom_label):
-
-        self.__analyze_samples_loading_window.get_top_label().set_label(
-            top_label)            
-        self.__analyze_samples_loading_window.get_bottom_label().set_label(
-            bottom_label)
-
-    ''' Behaviour when the ViewStore goes empty. '''
-    def on_empty_store(self):
-
-        # Disable widgets that need samples to be available for
-        self.__switch_off_tools()
-
-    ''' Behaviour when the ViewStore goes from empty to no longer empty. '''
-    def on_store_not_empty(self, sample_id=None):
-
-        # Sample in first row is activated
-        if sample_id is None:
-            self.__switch_on_tools()
-            self.__controller.activate_sample(
-                self.__main_window.get_samples_view().get_sample_id(0))
-
-        elif sample_id != self.__controller.get_active_sample_id():
-            self.__controller.activate_sample(sample_id)
-
-    ''' On sample activated behaviour. '''
-    def on_sample_activated(self, sample_id):
-
-        samples_view = self.__main_window.get_samples_view()
-        # Focus the active Sample's row on the SamplesView TreeView
-        samples_view.focus_row(samples_view.get_sample_row(sample_id))
-        # Update components configuration with active Sample parameters 
-        self.__update_components_parameters()
-
-    ''' Sets the given comet list for the sample with given ID. '''
-    def replace_samples_comet_view_list(self, samples_comet_view_lists):
-
-        for (sample_id, comet_view_list) in samples_comet_view_lists:    
-
-            sample_parameters = self.__view_store.get_store()[sample_id]
-            # Set new list
-            sample_parameters.set_comet_view_list(comet_view_list)
-            # Set number of comets in sample
-            self.__main_window.get_samples_view().\
-                set_sample_number_of_comets(sample_id, len(comet_view_list), 
-                    self.__controller.get_sample_analyzed_flag(sample_id))       
-                        
-        self.__update_canvas()
-        self.__update_selection_window()
-
-        current_scale_ratio = self.__controller.get_sample_zoom_value(
-                                  self.__controller.get_active_sample_id())
-        requested_scale_ratio = self.__main_window.get_zoom_tool()\
-                                    .get_active_scale_ratio()
-        scale_ratio = requested_scale_ratio / current_scale_ratio
-        self.__controller.scale_active_sample_comets_contours(
-            requested_scale_ratio, scale_ratio)     
-
-    ''' Clears the comet list of the sample with given ID. '''
-    def clear_comet_list(self, sample_id):
-
-        self.__view_store.get_store()[sample_id].\
-            get_comet_view_list().clear()
-        self.__view_store.get_store()[sample_id].\
-            _set_selected_comet_id(None)
-        self.__update_canvas()
-
-    ''' Returns the sample's selected comet view with given ID. '''
-    def get_sample_selected_comet_view(self, sample_id, comet_id):
-        
-        if sample_id is not None and comet_id is not None:
-        
-            sample_parameters = self.__view_store.get_store()[sample_id]
-            for comet_view in sample_parameters.get_comet_view_list():
-                if comet_view.get_id() == comet_id:
-                    return comet_view 
-
-    ''' Returns the active sample's comet view list. '''
-    def get_active_sample_comet_view_list(self):
-
-        if self.__controller.get_active_sample_id() is not None:
-            return self.__view_store.get_store()[self.__controller.get_active_sample_id()].\
-                get_comet_view_list()
-
-    ''' Returns the active sample's comet number. '''
-    def get_active_sample_comet_number(self, comet_id):
-
-        if self.__controller.get_active_sample_id() is not None:
-            return self.__view_store.get_comet_number(
-                self.__controller.get_active_sample_id(), comet_id)
-
-    ''' Returns the active sample SampleParameters object. '''
-    def get_active_sample_parameters(self):
-
-        if self.__controller.get_active_sample_id() is not None:
-            return self.__view_store.get_store()[self.__controller.get_active_sample_id()]
-
-    ''' Updates the DrawingArea with the new parameters. '''
-    def __update_canvas(self):
-
-        # Update
-        self.__main_window.get_canvas().update()
-
-    ''' Updates the SelectionWindow. '''
-    def __update_selection_window(self):
-        self.__main_window.get_selection_window().update()
-
-    ''' 
-        Returns the active sample DelimiterPoint lists for the Canvas
-        CometWithTailState state.
-   ¡
-    def get_active_sample_comet_with_tail_state_delimiter_point_lists(self):
-    
-        return (self.__view_store.get_store()[self.__controller.get_active_sample_id()].
-                get_comet_with_tail_comet_delimiter_point_list(),
-                self.__view_store.get_store()[self.__controller.get_active_sample_id()].
-                get_comet_with_tail_head_delimiter_point_list()
-               )
-    '''
-
-
-# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 #                                  Callbacks                                  #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ # 
 
@@ -1357,7 +915,7 @@ class View(Observer):
             self.__view_store.get_store()[self.__controller.get_active_sample_id()].\
                 set_scroll_x_position(scrollbar.get_value())
             # Update canvas      
-            self.__update_canvas()
+            self.__main_window.get_canvas().update()
    
     ''' Canvas Vertical Scrollbar 'value-changed' callback. '''
     def __on_canvas_vertical_scrollbar_value_changed(self, scrollbar):
@@ -1368,7 +926,7 @@ class View(Observer):
             self.__view_store.get_store()[self.__controller.get_active_sample_id()].\
                 set_scroll_y_position(scrollbar.get_value())
             # Update canvas
-            self.__update_canvas()
+            self.__main_window.get_canvas().update()
 
     ''' Canvas 'key-press-event' signal callback. '''
     def __on_canvas_key_press_event(self, drawing_area, event):
@@ -1388,7 +946,7 @@ class View(Observer):
         self.__analyze_samples_window.set_single_analysis_flag(True)
         # Set window title
         self.__analyze_samples_window.get_window().set_title(
-            self.get_strings().ANALYZE_SAMPLES_SELECTION_WINDOW_TITLE.format(sample_name))
+            self.__controller.get_strings().ANALYZE_SAMPLES_SELECTION_WINDOW_TITLE.format(sample_name))
         # Set the samples IDs to analyze        
         self.__analyze_samples_window.set_sample_id_list([sample_id])
 
@@ -1446,18 +1004,17 @@ class View(Observer):
                 pixbuf = sample_parameters.get_original_pixbuf()
                 scaled_pixbuf = zoom_tool.apply_zoom(
                     self.__controller.get_active_sample_id(), pixbuf)
+                    
+                # Scale Active Sample Comets    
+                requested_scale_ratio = self.__main_window.get_zoom_tool()\
+                                            .get_active_scale_ratio()
+                self.__controller.scale_active_sample_comets(
+                    requested_scale_ratio)
 
+                # Update Active Sample Parameters
                 current_scale_ratio = self.__controller.get_sample_zoom_value(
                                           self.__controller.get_active_sample_id())
-                requested_scale_ratio = self.__main_window.get_zoom_tool()\
-                                        .get_active_scale_ratio()
                 scale_ratio = requested_scale_ratio / current_scale_ratio
-
-                # Scale sample comets contours
-                self.__controller.scale_active_sample_comets_contours(
-                    requested_scale_ratio, scale_ratio)
-
-                # Update Active Sample Parameters            
                 sample_parameters.set_displayed_pixbuf(scaled_pixbuf)
                 self.__controller.set_sample_zoom_index(
                     self.__controller.get_active_sample_id(), zoom_tool.get_active())
@@ -1467,7 +1024,7 @@ class View(Observer):
                 sample_parameters.set_scroll_y_position(y_pos * scale_ratio)
 
                 # Update canvas
-                self.__update_canvas()
+                self.__main_window.get_canvas().update()
 
 
             # The internal Gtk.Entry text has changed
@@ -1568,8 +1125,8 @@ class View(Observer):
         
             self.__main_window.get_canvas().hide_editing_buttons()
             self.__controller.canvas_transition_to_selection_state()
-            self.__update_canvas()
-            self.__update_selection_window()
+            self.__main_window.get_canvas().update()
+            self.__main_window.get_selection_window().update()
 
     ''' Canvas 'Editing Mode' Button 'clicked' callback. '''
     def __on_canvas_editing_button_clicked(self, button):
@@ -1578,8 +1135,8 @@ class View(Observer):
         
             self.__main_window.get_canvas().show_editing_buttons()
             self.__controller.canvas_transition_to_editing_state()
-            self.__update_canvas()
-            self.__update_selection_window()
+            self.__main_window.get_canvas().update()
+            self.__main_window.get_selection_window().update()
 
     ''' Canvas 'Editing Selection' Button 'clicked' callback. '''
     def __on_canvas_editing_selection_button_clicked(self, button):
@@ -1588,7 +1145,7 @@ class View(Observer):
         
             self.__controller.canvas_transition_to_editing_selection_state()
             self.__main_window.get_canvas().set_build_contour_buttons_sensitivity(False)
-            self.__update_canvas()
+            self.__main_window.get_canvas().update()
 
     ''' Canvas 'Building' Button 'clicked' callback. '''
     def __on_canvas_editing_building_button_clicked(self, button):
@@ -1597,7 +1154,7 @@ class View(Observer):
         
             self.__controller.canvas_transition_to_editing_building_state()
             self.__main_window.get_canvas().set_build_contour_buttons_sensitivity(True)
-            self.__update_canvas()
+            self.__main_window.get_canvas().update()
 
     ''' Canvas 'Build comet contour' Button 'clicked' callback. '''
     def __on_canvas_build_tail_contour_button_clicked(self, button):
@@ -1605,7 +1162,7 @@ class View(Observer):
         if button.get_active():
         
             self.__controller.canvas_transition_to_building_tail_contour_state()
-            self.__update_canvas()
+            self.__main_window.get_canvas().update()
 
     ''' Canvas 'Build head contour' Button 'clicked' callback. '''
     def __on_canvas_build_head_contour_button_clicked(self, button):
@@ -1613,7 +1170,7 @@ class View(Observer):
         if button.get_active():
             
             self.__controller.canvas_transition_to_building_head_contour_state()
-            self.__update_canvas()
+            self.__main_window.get_canvas().update()
 
     ''' Set the canvas scrolls position. '''
     def __on_canvas_size_allocate(self, drawing_area, allocation):
@@ -1629,7 +1186,7 @@ class View(Observer):
             # Set scrolls position
             self.__main_window.get_canvas().set_scroll_position(x, y)
     
-        self.__update_canvas()
+        self.__main_window.get_canvas().update()
 
     ''' 
         Canvas 'Delete DelimiterPoint' context menu Button 'activate' 
@@ -1703,9 +1260,9 @@ class View(Observer):
     def __on_settings_window_algorithm_combobox_changed(
                                             self, combobox, settings_window):
 
-        if combobox.get_active() == AlgorithmSettings.FREECOMET:
+        if combobox.get_active() == AlgorithmSettingsDto.FREECOMET:
             visibility = True
-        elif combobox.get_active() == AlgorithmSettings.OPENCOMET:
+        elif combobox.get_active() == AlgorithmSettingsDto.OPENCOMET:
             visibility = False
                 
         settings_window.set_components_visibility(visibility)
@@ -1836,7 +1393,7 @@ class View(Observer):
     ''' SelectionWindow 'Save' Button 'clicked' callback. '''
     def __on_editing_comet_save_button_clicked(self, button):
         self.__controller.save_comet_being_edited_changes()
-        self.__update_canvas()
+        self.__main_window.get_canvas().update()
 
 
     #                                                           #
@@ -1849,9 +1406,265 @@ class View(Observer):
         return True
 
 
+
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
-# ~                             Private Methods                             ~ #
+#                                  Methods                                    #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+
+    ''' Start the GUI. '''
+    def start(self):
+
+        self.__main_window.show()
+        self.__main_window.get_selection_window().hide()
+        self.__main_window.get_samples_view().get_sorting_arrow_icon().\
+            set_visible(False)   
+        self.__controller.canvas_transition_to_selection_state()
+        self.__main_window.get_canvas().hide_editing_buttons()
+        
+    ''' Restarts components parameters. '''
+    def restart(self):
+    
+        self.__view_store.restart()
+        self.__analyze_samples_window.restart()
+        self.__main_settings_window.restart()
+        self.__main_window.restart()
+        self.__analyze_samples_loading_window.restart()
+        
+    ''' Ends the application execution. '''
+    def exit(self):
+        Gtk.main_quit()
+
+    ''' Observer.update() implementation method. '''
+    def update(self, store):
+
+        if len(store) == 0:
+            self.on_empty_store()
+        else:
+            self.on_store_not_empty(self.__controller.get_active_sample_id())
+
+        self.__set_info_label_text(len(store))
+        
+    ''' 'Delete sample' behaviour. '''
+    def delete_sample(self, sample_id):
+
+        # Retrieve sample parameters before removal
+        parameters = self.__view_store.get_sample_parameters(sample_id)
+        # Remove from the SamplesView
+        pos = self.__main_window.get_samples_view().delete_sample(sample_id)
+        # Delete from the ViewStore
+        self.__view_store.remove(sample_id)
+       
+        # If the deleted sample was the 'active sample', the sample that takes 
+        # its position in the list is activated   
+        if ( (len(self.__view_store.get_store())) > 0 and
+             (sample_id == self.__controller.get_active_sample_id()) ):
+            self.__controller.activate_sample()
+        # Return sample's parameters
+        return (parameters, pos)
+
+    ''' Builds the CometParametersWindow and shows it. ''' 
+    def see_comet_parameters(self, sample_name, comet_number, 
+                              comet_parameters):
+
+        self.__comet_parameters_window.get_sample_name_label().set_label(
+            sample_name)
+        self.__comet_parameters_window.get_comet_number_value_label().set_label(
+            str(comet_number))
+        self.__comet_parameters_window.get_comet_area_value_label().set_label(
+            str(comet_parameters.get_comet_area()))
+        self.__comet_parameters_window.get_comet_intensity_value_label().set_label(
+            str(comet_parameters.get_comet_average_intensity()))
+        self.__comet_parameters_window.get_comet_length_value_label().set_label(
+            str(comet_parameters.get_comet_length()))
+        self.__comet_parameters_window.get_comet_dna_value_label().set_label(
+            str(comet_parameters.get_comet_dna_content()))
+        self.__comet_parameters_window.get_head_area_value_label().set_label(
+            str(comet_parameters.get_head_area()))
+        self.__comet_parameters_window.get_head_intensity_value_label().set_label(
+            str(comet_parameters.get_head_average_intensity()))
+        self.__comet_parameters_window.get_head_length_value_label().set_label(
+            str(comet_parameters.get_head_length()))
+        self.__comet_parameters_window.get_head_dna_value_label().set_label(
+            str(comet_parameters.get_head_dna_content()))
+        self.__comet_parameters_window.get_head_dna_percentage_value_label().set_label(
+            str(comet_parameters.get_head_dna_percentage()*100))  
+        self.__comet_parameters_window.get_tail_area_value_label().set_label(
+            str(comet_parameters.get_tail_area()))
+        self.__comet_parameters_window.get_tail_intensity_value_label().set_label(
+            str(comet_parameters.get_tail_average_intensity()))
+        self.__comet_parameters_window.get_tail_length_value_label().set_label(
+            str(comet_parameters.get_tail_length()))
+        self.__comet_parameters_window.get_tail_dna_value_label().set_label(
+            str(comet_parameters.get_tail_dna_content()))
+        self.__comet_parameters_window.get_tail_dna_percentage_value_label().set_label(
+            str(comet_parameters.get_tail_dna_percentage()*100))
+        self.__comet_parameters_window.get_tail_moment_value_label().set_label(
+            str(comet_parameters.get_tail_moment()))
+        self.__comet_parameters_window.get_olive_moment_value_label().set_label(
+            str(comet_parameters.get_olive_moment()))
+     
+        self.__comet_parameters_window.show()
+
+    ''' Sets Undo Button sensitivity. ''' 
+    def set_undo_button_sensitivity(self, value):
+        self.__main_window.get_toolbar().get_undo_button().set_sensitive(
+                                                                 value)
+    ''' Sets Redo Button sensitivity. '''
+    def set_redo_button_sensitivity(self, value):
+        self.__main_window.get_toolbar().get_redo_button().set_sensitive(
+                                                                 value)
+    ''' Zoom out the active sample image. '''
+    def zoom_out(self):
+
+        # Make the active Sample grab the focus
+        samples_view = self.__main_window.get_samples_view()
+        row = samples_view.get_sample_row(self.__controller.get_active_sample_id())
+        samples_view.focus_row(row)
+        # Zoom Out
+        self.__main_window.get_zoom_tool().zoom_out()
+        # Save current active sample 'zoom_index' parameter
+        self.__controller.set_sample_zoom_index(self.__controller.get_active_sample_id(), 
+            self.__main_window.get_zoom_tool().get_active())
+
+    ''' Zoom in the active sample image. '''
+    def zoom_in(self):
+
+        # Make the active Sample grab the focus
+        samples_view = self.__main_window.get_samples_view()
+        row = samples_view.get_sample_row(self.__controller.get_active_sample_id())
+        samples_view.focus_row(row)
+        # Zoom In
+        self.__main_window.get_zoom_tool().zoom_in()
+        # Save current active sample 'zoom_index' parameter
+        self.__controller.set_sample_zoom_index(self.__controller.get_active_sample_id(), 
+            self.__main_window.get_zoom_tool().get_active())
+
+    ''' Application window fullscreen mode. '''
+    def fullscreen(self, fullscreen_button):
+
+        # check if the state is the same as Gdk.WindowState.FULLSCREEN, which
+        # is a bit flag
+        is_fullscreen = self.__main_window.get_window().get_window().get_state(
+        ) & Gdk.WindowState.FULLSCREEN != 0
+        if not is_fullscreen:
+            fullscreen_button.set_stock_id(Gtk.STOCK_LEAVE_FULLSCREEN)
+            self.__main_window.fullscreen()
+        else:
+            fullscreen_button.set_stock_id(Gtk.STOCK_FULLSCREEN)
+            self.__main_window.unfullscreen()
+
+    ''' Sets the main application window title. '''
+    def set_application_window_title(self, title):
+        self.__main_window.set_title(title)
+
+    ''' Pops up ContextMenu1. '''
+    def show_context_menu1(self, event):
+        self.__context_menu1.popup(
+            None, None, None, None, event.button, event.time)
+
+    ''' Pops up ContextMenu2. '''
+    def show_context_menu2(self, event):
+        self.__context_menu2.popup(
+            None, None, None, None, event.button, event.time)
+
+    ''' Pops up CanvasContextMenu. '''
+    def show_canvas_context_menu(self, event):
+        self.__canvas_context_menu.popup(
+            None, None, None, None, event.button, event.time)
+
+    ''' Runs LoadSamplesWindow. '''
+    def run_load_samples_window(self):
+        self.__load_samples_window.show()
+
+    ''' Runs AnalyzeSamplesLoadingWindow. '''
+    def run_analyze_samples_loading_window(self):
+        self.__analyze_samples_loading_window.show()
+
+    ''' Closes LoadSamplesWindow. '''
+    def close_load_samples_window(self):
+        self.__load_samples_window.hide()
+
+    ''' Closes AnalyzeSamplesLoadingWindow. '''
+    def close_analyze_samples_loading_window(self):
+        self.__analyze_samples_loading_window.hide()
+
+    ''' 
+        Threading Synchronous method to update the configuration of
+        LoadSamplesWindow.
+    '''
+    def update_load_samples_window(self, bottom_label, top_label, n, n_total):
+
+        self.__load_samples_window.get_top_label().set_label(top_label)
+        self.__load_samples_window.get_bottom_label().set_label(bottom_label)
+        self.__load_samples_window.get_progress_bar().set_fraction(n/n_total)
+
+    ''' 
+        Threading Synchronous method to update the configuration of
+        AnalyzeSamplesLoadingWindow.
+    '''
+    def update_analyze_samples_loading_window(
+                                    self, top_label, bottom_label):
+
+        self.__analyze_samples_loading_window.get_top_label().set_label(
+            top_label)            
+        self.__analyze_samples_loading_window.get_bottom_label().set_label(
+            bottom_label)
+
+    ''' Behaviour when the ViewStore goes empty. '''
+    def on_empty_store(self):
+
+        # Disable widgets that need samples to be available for
+        self.__switch_off_tools()
+
+    ''' Behaviour when the ViewStore goes from empty to no longer empty. '''
+    def on_store_not_empty(self, sample_id=None):
+
+        # Sample in first row is activated
+        if sample_id is None:
+            self.__switch_on_tools()
+            self.__controller.activate_sample(
+                self.__main_window.get_samples_view().get_sample_id(0))
+
+        elif sample_id != self.__controller.get_active_sample_id():
+            self.__controller.activate_sample(sample_id)
+
+    ''' On sample activated behaviour. '''
+    def on_sample_activated(self, sample_id):
+
+        samples_view = self.__main_window.get_samples_view()
+        # Focus the active Sample's row on the SamplesView TreeView
+        samples_view.focus_row(samples_view.get_sample_row(sample_id))
+        # Update components configuration with active Sample parameters 
+        self.__update_components_parameters()
+
+    ''' Clears the comet list of the sample with given ID. '''
+    def clear_comet_list(self, sample_id):
+
+        self.__view_store.get_store()[sample_id].\
+            get_comet_view_list().clear()
+        self.__view_store.get_store()[sample_id].\
+            _set_selected_comet_id(None)
+        self.__main_window.get_canvas().update()
+
+    ''' Returns the active sample's comet view list. '''
+    def get_active_sample_comet_view_list(self):
+
+        if self.__controller.get_active_sample_id() is not None:
+            return self.__view_store.get_store()[self.__controller.get_active_sample_id()].\
+                get_comet_view_list()
+
+    ''' Returns the active sample's comet number. '''
+    def get_active_sample_comet_number(self, comet_id):
+
+        if self.__controller.get_active_sample_id() is not None:
+            return self.__view_store.get_comet_number(
+                self.__controller.get_active_sample_id(), comet_id)
+
+    ''' Returns the active sample SampleParameters object. '''
+    def get_active_sample_parameters(self):
+
+        if self.__controller.get_active_sample_id() is not None:
+            return self.__view_store.get_store()[self.__controller.get_active_sample_id()]
 
     ''' Sets the info label text. '''
     def __set_info_label_text(self, n_samples):
@@ -1866,16 +1679,6 @@ class View(Observer):
                 self.__main_window.set_info_label_text(self.__controller.\
                     get_strings().INFO_LABEL_ON_NOT_EMPTY_STORE.format(
                         n_samples))
-
-    ''' Returns the Comet tail contour with given identifier.
-    def __get_tail_contour(self, sample_id, comet_id):
-        return self.__controller.get_tail_contour(sample_id, comet_id)
-    '''    
-
-    ''' Returns the Comet 'head contour' with given identifier.
-    def __get_head_contour(self, sample_id, comet_id):
-        return self.__controller.get_head_contour(sample_id, comet_id)
-    '''    
 
     ''' Updates the components with active sample's parameters '''
     def __update_components_parameters(self):
@@ -1906,20 +1709,10 @@ class View(Observer):
         sample_name = self.__main_window.get_samples_view().get_sample_name(
             row)
         canvas.get_label().set_label(sample_name)
-        self.__update_canvas()
+        self.__main_window.get_canvas().update()
 
         # # # # # SelectionWindow
-        self.__update_selection_window()
-
-    ''' Deactivate tools. '''
-    def __switch_off_tools(self):
-    
-        # Deactivate Canvas
-        self.__main_window.get_canvas().switch_off()
-        # Deactivate ZoomTool
-        self.__main_window.get_zoom_tool().switch_off()
-        # Deactivate SelectionWindow
-        self.__main_window.get_selection_window().switch_off()      
+        self.__main_window.get_selection_window().update()
 
     ''' Activate tools. '''
     def __switch_on_tools(self):
@@ -1931,21 +1724,19 @@ class View(Observer):
         # Activate SelectionWindow
         self.__main_window.get_selection_window().switch_on()
 
-    ''' Returns the View store. '''
-    def get_store(self):
-        return self.__view_store.get_store()
-
-    ''' Returns the Strings object. '''
-    def get_strings(self):
-        return self.__controller.get_strings()
-       
-    ''' Returns the Canvas object. '''
-    def get_canvas(self):
-        return self.__main_window.get_canvas()
-               
+    ''' Deactivate tools. '''
+    def __switch_off_tools(self):
+    
+        # Deactivate Canvas
+        self.__main_window.get_canvas().switch_off()
+        # Deactivate ZoomTool
+        self.__main_window.get_zoom_tool().switch_off()
+        # Deactivate SelectionWindow
+        self.__main_window.get_selection_window().switch_off()      
+           
     
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
-#                            Getters & Setters                                #
+#                             Getters & Setters                               #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 
     def get_controller(self):

@@ -139,7 +139,7 @@ class SampleParameters(object):
     '''
 
     ''' Initialization method. '''
-    def __init__(self, pixbuf, comet_view_list):
+    def __init__(self, pixbuf, comet_view_list=[]):
 
         self.__original_pixbuf = pixbuf
         self.__displayed_pixbuf = pixbuf
@@ -174,7 +174,7 @@ class SampleParameters(object):
             i += 1
 
         return False
-
+        
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 #                              Getters & Setters                              #

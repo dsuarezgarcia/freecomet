@@ -240,7 +240,7 @@ class AddCometCommand(Command):
         self.controller.add_comet(sample_id, comet, pos)            
         # Save data
         self.save_data((sample_id, comet.get_id(), 
-            self.controller.get_sample_analyzed_flag(sample_id)))
+            self.controller.get_model().get_sample(sample_id).get_analyzed()))
 
     def undo(self):
 

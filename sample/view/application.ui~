@@ -244,7 +244,7 @@
   <object class="GtkImage" id="purge-image">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
-    <property name="icon_name">edit-delete-symbolic.symbolic</property>
+    <property name="icon_name">package-purge</property>
     <property name="icon_size">1</property>
   </object>
   <object class="GtkImage" id="remove-image-symolic">

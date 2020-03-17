@@ -8,6 +8,7 @@
 import itertools
 import ntpath
 import numpy
+import copy
 
 # Custom imports
 from singleton import Singleton
@@ -29,9 +30,6 @@ class Model(object):
     '''
         The Model class.
     '''
-       
-    # The Sample ID generator
-    new_id = itertools.count()
 
     APP_NAME = "FreeComet"
     FILE_EXTENSION = ".fc"
@@ -77,10 +75,10 @@ class Model(object):
         # Add to each of the stores the required information
         for sample in data['samples']:
 
-            # Give an ID
-            sample.set_id(next(Model.new_id))
+            # Give new ID
+            sample.set_id(next(Sample.new_id))
             # Set decompressed image
-            sample.set_image(utils.decompress_image(sample.get_image()))
+            sample.set_image(utils.decompress_image(sample.get_image()))           
             # Add to store           
             store[sample.get_id()] = sample
 
@@ -103,19 +101,11 @@ class Model(object):
         samples = []
         for (_, sample) in self.__store.items():
 
-            '''
-            # Save some of the parameters from SampleParameters
-            sample_parameters = self.__view.get_store()[sample_id]
-            tail_contour_dict = sample_parameters.get_canvas_tail_contour_dict()
-            head_contour_dict = sample_parameters.get_canvas_head_contour_dict()
-            '''
-
+            sample_copy = copy.deepcopy(sample)
             # Compress image
             compressed_image = utils.compress_image(sample.get_image().copy())
-            sample = Sample(None, sample.get_name(), compressed_image,
-                         sample.get_comet_list())  
-            #samples.append((sample, (tail_contour_dict, head_contour_dict)))
-            samples.append(sample)
+            sample_copy.set_image(compressed_image)
+            samples.append(sample_copy)
 
         data['samples'] = samples
         data['settings'] = self.__algorithm_settings
@@ -129,13 +119,6 @@ class Model(object):
 
         except:                   
             return False
-
-    ''' Creates and adds a new sample to the store and returns its ID. '''
-    def add_new_sample(self, name, image):
-
-        sample_id = next(Model.new_id)
-        self.add_sample(Sample(sample_id, name, image))
-        return sample_id
 
     ''' Adds given sample to the store. '''
     def add_sample(self, sample):
@@ -349,15 +332,18 @@ class Sample(object):
     '''
         The Sample class.
     '''
+    
+    # The Sample ID generator
+    new_id = itertools.count()
 
     DEFAULT_ZOOM_MODEL = [.1, .25, .33, .5, .67, .75, 1., 1.5, 
                            2., 2.5, 3., 4., 5., 6., 7., 8.]
     DEFAULT_ZOOM_INDEX = 6
 
     ''' Initialization method. '''
-    def __init__(self, id, sample_name, image, comet_list=[]):
+    def __init__(self, sample_name, image, comet_list=[]):
 
-        self.__id = id                                         # The id (int)
+        self.__id = next(Sample.new_id)                        # The id (int)
         self.__name = sample_name                              # The name (str)
         self.__image = image                                   # The image (ndarray)
         self.__comet_list = comet_list.copy()                  # The comet_list (Comet[])
@@ -376,13 +362,6 @@ class Sample(object):
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 #                                  Methods                                    #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
-
-    ''' Adds a new comet. '''
-    def add_new_comet(self, tail_contour, head_contour):
-
-        comet = Comet(self, tail_contour, head_contour) 
-        self.add_comet(comet)
-        return comet.get_id()
     
     ''' Adds given Comet at given position. '''
     def add_comet(self, comet, pos=None):
@@ -391,8 +370,8 @@ class Sample(object):
             self.__comet_list.append(comet)
         else:
             self.__comet_list.insert(pos, comet)
-        # Update analyzed_flag
-        self.__analyzed_flag = True
+        # Update analyzed
+        self.__analyzed = True
    
     ''' Deletes comet with given ID. '''
     def delete_comet(self, comet_id):
@@ -405,7 +384,7 @@ class Sample(object):
                 del self.__comet_list[pos]
 
                 if len(self.__comet_list) == 0:
-                    self.__analyzed_flag = False
+                    self.__analyzed = False
 
                 return (comet_copy, pos)
 

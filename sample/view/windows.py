@@ -398,13 +398,13 @@ class AnalyzeSamplesWindow(SettingsWindow):
 
         if self.__single_analysis_flag:
             self.__back_button.set_label(
-                self.__view.get_strings().CANCEL_BUTTON_LABEL)
+                self.__view.get_controller().get_strings().CANCEL_BUTTON_LABEL)
             self.__back_button.set_image(self.__cancel_button_image)
         else:
             self.set_title(
-                self.__view.get_strings().ANALYZE_SAMPLES_WINDOW_TITLE)
+                self.__view.get_controller().get_strings().ANALYZE_SAMPLES_WINDOW_TITLE)
             self.__back_button.set_label(
-                self.__view.get_strings().BACK_BUTTON_LABEL)
+                self.__view.get_controller().get_strings().BACK_BUTTON_LABEL)
             self.__back_button.set_image(self.__back_button_image)
 
         MyWindow.show(self)
@@ -621,7 +621,7 @@ class SelectionWindow(MyWindow):
         comet_number = self.__view.get_active_sample_comet_number(
             self.__view.get_controller().get_active_sample_comet_being_edited_id())
         self.__editing_label.set_label(
-            self.__view.get_strings().SELECTION_WINDOW_COMET_BEING_EDITED_LABEL.format(
+            self.__view.get_controller().get_strings().SELECTION_WINDOW_COMET_BEING_EDITED_LABEL.format(
                 comet_number))
 
     ''' Switches on the SelectionWindow. '''
@@ -660,7 +660,7 @@ class SelectionWindow(MyWindow):
                 comet_number = self.__view.get_active_sample_comet_number(
                     comet_view.get_id())            
                 self.__selection_label.set_label(
-                    self.__view.get_strings().SELECTION_WINDOW_SELECTION_LABEL.format(
+                    self.__view.get_controller().get_strings().SELECTION_WINDOW_SELECTION_LABEL.format(
                         comet_number))
 
                 sensitive = comet_view.get_scaled_tail_contour() is not None 

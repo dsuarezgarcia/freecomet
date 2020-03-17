@@ -65,11 +65,11 @@ class CanvasState(State):
 
     ''' Mouse entrance behaviour. '''
     def on_mouse_enter(self, *args):
-        self._context.get_view().get_canvas().set_cursor("default")
+        self._context.get_view().get_main_window().get_canvas().set_cursor("default")
 
     ''' Mouse exit behaviour. '''
     def on_mouse_leave(self, *args):
-        self._context.get_view().get_canvas().set_mouse_coordinates(None)
+        self._context.get_view().get_main_window().get_canvas().set_mouse_coordinates(None)
 
     ''' Mouse motion behaviour. '''
     def on_mouse_motion(self, *args):
@@ -206,19 +206,19 @@ class CanvasSelectionState(CanvasState):
             self.__check_comet_selection((int(event.x), int(event.y)))
 
             # Scrollbars movement
-            self._context.get_view().get_canvas().set_move_reference_point(
+            self._context.get_view().get_main_window().get_canvas().set_move_reference_point(
                 (int(event.x_root), int(event.y_root)))
 
         # Pop up CanvasSelectionState context menu
         elif event.button == MouseButtons.RIGHT_BUTTON:                
-            self._context.get_view().get_canvas().\
+            self._context.get_view().get_main_window().get_canvas().\
                 pop_up_canvas_selection_state_menu(event)
 
     ''' CanvasState.on_mouse_release() implementation method. '''
     def on_mouse_release(self, event):
 
         # Change to 'default' cursor
-        self._context.get_view().get_canvas().set_cursor("default")
+        self._context.get_view().get_main_window().get_canvas().set_cursor("default")
 
     ''' CanvasState.on_mouse_motion() implementation method. '''
     def on_mouse_motion(self, event):
@@ -227,15 +227,15 @@ class CanvasSelectionState(CanvasState):
         if event.state & Gdk.EventMask.BUTTON_PRESS_MASK:
 
             # Change to 'move' cursor
-            self._context.get_view().get_canvas().set_cursor("move")
+            self._context.get_view().get_main_window().get_canvas().set_cursor("move")
            
             # Get movement direction of mouse
             mouse_point = int(event.x_root), int(event.y_root)
             axis_direction = self.__get_direction(
-                mouse_point, self._context.get_view().get_canvas().get_move_reference_point())
-            self._context.get_view().get_canvas().move_scrollbars(axis_direction)
+                mouse_point, self._context.get_view().get_main_window().get_canvas().get_move_reference_point())
+            self._context.get_view().get_main_window().get_canvas().move_scrollbars(axis_direction)
             # Update reference point with current mouse location
-            self._context.get_view().get_canvas().set_move_reference_point(mouse_point)
+            self._context.get_view().get_main_window().get_canvas().set_move_reference_point(mouse_point)
 
     ''' CanvasState.on_key_press_event() implementation method. '''
     def on_key_press_event(self, event):
@@ -328,10 +328,10 @@ class CanvasEditingState(CanvasState):
         super().__init__(context)
 
         # State
-        if context.get_view().get_canvas().get_editing_selection_button().get_active():
+        if context.get_view().get_main_window().get_canvas().get_editing_selection_button().get_active():
             self.__state = EditingSelectionState(context)
             
-        elif context.get_view().get_canvas().get_building_button().get_active():
+        elif context.get_view().get_main_window().get_canvas().get_building_button().get_active():
             self.__state = EditingBuildingState(context)
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
@@ -370,14 +370,14 @@ class CanvasEditingState(CanvasState):
         menu1.
      '''
     def pop_up_editing_selection_menu1(self, event):
-        self._context.get_view().get_canvas().pop_up_editing_selection_menu1(event)
+        self._context.get_view().get_main_window().get_canvas().pop_up_editing_selection_menu1(event)
 
     ''' 
         Tells the context to pop up the EditingSelectionState context
         menu2.
     '''
     def pop_up_editing_selection_menu2(self, event):
-        self._context.get_view().get_canvas().pop_up_editing_selection_menu2(event)
+        self._context.get_view().get_main_window().get_canvas().pop_up_editing_selection_menu2(event)
     
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
@@ -550,7 +550,7 @@ class EditingSelectionState(ActionState):
         CanvasModel.get_instance().set_selected_pivot_delimiter_point(None)
         CanvasModel.get_instance().set_delimiter_point_selection(
             DelimiterPointSelection())
-        self._context.get_view().get_canvas().\
+        self._context.get_view().get_main_window().get_canvas().\
             set_build_contour_buttons_sensitivity(False)
 
 
@@ -612,7 +612,7 @@ class EditingSelectionState(ActionState):
 
                 # Right click
                 if event.button == MouseButtons.RIGHT_BUTTON:
-                    self._context.get_view().get_canvas().pop_up_editing_selection_menu1(event)
+                    self._context.get_view().get_main_window().get_canvas().pop_up_editing_selection_menu1(event)
 
                 # If it is not already selected, it is selected as an individual 
                 if (delimiter_point.get_id() not in 
@@ -635,7 +635,7 @@ class EditingSelectionState(ActionState):
                     CanvasModel.get_instance().set_requested_delimiter_point(
                         RequestedDelimiterPoint(mouse_coordinates, candidate[0])
                     )
-                    self._context.get_view().get_canvas().pop_up_editing_selection_menu2(event)
+                    self._context.get_view().get_main_window().get_canvas().pop_up_editing_selection_menu2(event)
 
             # Left click
             else:
@@ -1054,7 +1054,7 @@ class EditingBuildingState(ActionState):
             
         if CanvasModel.get_instance().get_root_delimiter_point() is not None:
 
-            mouse_coordinates = self._context.get_view().get_canvas().get_mouse_coordinates()
+            mouse_coordinates = self._context.get_view().get_main_window().get_canvas().get_mouse_coordinates()
             if mouse_coordinates is not None:
     
                 # Set building trail line color
@@ -1080,7 +1080,7 @@ class EditingBuildingState(ActionState):
             line.append(
                 CanvasModel.get_instance().get_anchored_delimiter_point().get_coordinates())
         else:  
-            line.append(self._context.get_view().get_canvas().get_mouse_coordinates())
+            line.append(self._context.get_view().get_main_window().get_canvas().get_mouse_coordinates())
 
         return line
         
@@ -1088,12 +1088,12 @@ class EditingBuildingState(ActionState):
     def __draw_mouse_pointer_delimiter_point(self, cairo_context):
 
         # Mouse is inside the DrawingArea
-        if self._context.get_view().get_canvas().get_mouse_coordinates() is not None:
+        if self._context.get_view().get_main_window().get_canvas().get_mouse_coordinates() is not None:
 
             # No anchored DelimiterPoint
             if CanvasModel.get_instance().get_anchored_delimiter_point() is None:
                     
-                coordinates = self._context.get_view().get_canvas().get_mouse_coordinates()
+                coordinates = self._context.get_view().get_main_window().get_canvas().get_mouse_coordinates()
                 self._context.get_brush().set_color(
                     self.__state.get_color())
 
