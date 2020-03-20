@@ -25,17 +25,19 @@ class ThreadWithException(threading.Thread):
     def __init__(self, target, args): 
 
         threading.Thread.__init__(self, target=target, args=args) 
-           
+   
+    ''' Returns the Thread ID. '''   
     def get_id(self): 
   
         # Returns id of the respective thread 
-        if hasattr(self, '_thread_id'): 
+        if hasattr(self, 'thread_id'): 
             return self.thread_id
 
-        for id, thread in threading.active.items(): 
+        for thread in threading.enumerate():
             if thread is self: 
-                return id
+                return thread.ident
    
+    ''' Exception raised behaviour. '''
     def raise_exception(self):
 
         thread_id = self.get_id() 

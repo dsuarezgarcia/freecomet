@@ -619,13 +619,15 @@ class Comet(object):
 
                 try:
                     tail_centroid_x = utils.get_contour_centroid(tail_roi, True)[0]
-                except:
+                except Exception as err:
+                    print(err)
                     print("Unable to get Tail contour centroid. Aborting.")
                     return
                 
                 try:
                     head_centroid_x = utils.get_contour_centroid(head_roi, True)[0]
                 except:
+                    print(err)
                     print("Unable to get Head contour centroid. Aborting.")
                     return
                 
