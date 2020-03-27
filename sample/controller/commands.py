@@ -465,11 +465,22 @@ class EditCometContoursCommand(Command):
     ''' Command.execute() behaviour. '''
     def execute(self):
     
+        # Retrieve data
+        (sample_id, comet_id, 
+         tail_canvas_contour_dict,
+         head_canvas_contour_dict) = self.get_data()
+    
         # Activate Sample
-        self.controller.activate_sample(self.get_data()[0])
+        self.controller.activate_sample(sample_id)       
+        # Select Comet
+        self.controller.select_comet(sample_id, comet_id)
         
         # Update Comet as being edited
-        self.controller.start_comet_being_edited(*self.get_data())
+        self.controller.start_comet_being_edited(
+            sample_id, comet_id,
+            tail_canvas_contour_dict,
+            head_canvas_contour_dict
+        )
 
     ''' Command.undo() behaviour. '''
     def undo(self):
@@ -481,6 +492,7 @@ class EditCometContoursCommand(Command):
         self.controller.activate_sample(sample_id)
         # Select Comet
         self.controller.select_comet(sample_id, comet_id)
+        
         # Update Comet as not being edited
         self.controller.quit_comet_being_edited()
 
@@ -506,21 +518,31 @@ class CancelEditCometContoursCommand(Command):
     def execute(self):
     
         # Retrieve data
-        data = self.get_data()      
+        sample_id = self.get_data()[0] 
+        
         # Activate Sample
-        self.controller.activate_sample(data[0])
+        self.controller.activate_sample(sample_id)
+        
         # Quit Comet being edited
         self.controller.quit_comet_being_edited()
 
     ''' Command.undo() behaviour. '''
     def undo(self):
           
-        # Retrieve data  
-        data = self.get_data()  
+        # Retrieve data
+        (sample_id, comet_id, 
+         tail_canvas_contour_dict,
+         head_canvas_contour_dict) = self.get_data()
+         
         # Activate Sample
-        self.controller.activate_sample(data[0])  
+        self.controller.activate_sample(sample_id) 
+        
         # Start Comet being edited  
-        self.controller.start_comet_being_edited(*data)
+        self.controller.start_comet_being_edited(
+            sample_id, comet_id,
+            tail_canvas_contour_dict,
+            head_canvas_contour_dict
+        )
         
 
 

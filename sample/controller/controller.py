@@ -318,10 +318,9 @@ class Controller(object):
         self.start_comet_being_edited(sample_id, comet_id)
 
         # Add EditCometContoursCommand to the undo stack
-        data = (sample_id,
-                comet_id,
-                CanvasModel.get_instance().get_tail_contour_dict().copy(),
-                CanvasModel.get_instance().get_head_contour_dict().copy()
+        data = (sample_id, comet_id,
+                copy.deepcopy(CanvasModel.get_instance().get_tail_contour_dict()),
+                copy.deepcopy(CanvasModel.get_instance().get_head_contour_dict())
                )               
         command.set_data(data)                      
         self.__add_command(command)
@@ -331,8 +330,8 @@ class Controller(object):
     
         # Prepare the CancelEditCometContoursCommand
         command = commands.CancelEditCometContoursCommand(self)
-        comet_id = self.__model.get_sample(self.__active_sample_id).get_comet_being_edited_id()
-        
+        command.set_string(self.__strings.CANCEL_EDIT_COMET_CONTOURS_COMMAND_STRING)
+       
         # CanvasContours are parsed to ratio 1.
         scale_ratio = 1. / self.get_sample_zoom_value(self.__active_sample_id)
         
@@ -341,6 +340,7 @@ class Controller(object):
         utils.scale_canvas_contour_dict(tail_contour_dict, scale_ratio)
         utils.scale_canvas_contour_dict(head_contour_dict, scale_ratio)
        
+        comet_id = self.__model.get_sample(self.__active_sample_id).get_comet_being_edited_id()
         data = (
             self.__active_sample_id, 
             comet_id,
@@ -511,7 +511,7 @@ class Controller(object):
    
         # Prepare the CreateDelimiterPointCommand command
         command = commands.MoveDelimiterPointsCommand(self)
-        commands.set_string(self.__strings.MOVE_DELIMITER_POINTS_COMMAND_STRING)
+        command.set_string(self.__strings.MOVE_DELIMITER_POINTS_COMMAND_STRING)
         
         # Set data
         command.set_data(

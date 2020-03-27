@@ -185,12 +185,12 @@ class Strings(object):
         self.DELETE_COMET_COMMAND_STRING = _("'Eliminar Cometa'")
         self.REMOVE_COMET_TAIL_COMMAND_STRING = _("'Eliminar Cola de Cometa'")
         self.ANALYZE_SAMPLES_COMMAND_STRING = _("'Analizar Imágenes'")
-        self.FLIP_SAMPLE_IMAGE_COMMAND = _("'Voltear Imagen'")
-        self.INVERT_SAMPLE_IMAGE_COMMAND = _("'Invertir Imagen'")
-        self.EDIT_COMET_CONTOURS_COMMAND = _("'Comenzar Edición de Cometa'")
-        self.CANCEL_EDIT_COMET_CONTOURS_COMMAND = _("'Finalizar Edición de Cometa'")
-        self.UPDATE_COMET_CONTOURS_COMMAND = _("'Actualizar Contornos de Cometa'")
-        self.MOVE_DELIMITER_POINTS_COMMAND = _("'Mover Punto/s Delimitador/es'")
+        self.FLIP_SAMPLE_IMAGE_COMMAND_STRING = _("'Voltear Imagen'")
+        self.INVERT_SAMPLE_IMAGE_COMMAND_STRING = _("'Invertir Imagen'")
+        self.EDIT_COMET_CONTOURS_COMMAND_STRING = _("'Comenzar Edición de Cometa'")
+        self.CANCEL_EDIT_COMET_CONTOURS_COMMAND_STRING = _("'Cancelar Edición de Cometa'")
+        self.UPDATE_COMET_CONTOURS_COMMAND_STRING = _("'Finalizar Edición de Cometa'")
+        self.MOVE_DELIMITER_POINTS_COMMAND_STRING = _("'Mover Punto/s Delimitador/es'")
         
 
     ''' Translates the strings to spanish. '''
