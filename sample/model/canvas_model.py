@@ -92,8 +92,8 @@ class CanvasModel(metaclass=Singleton):
     ''' Behaviour when a Comet is requested to be edited. '''
     def prepare_comet_for_editing(self, opencv_tail_contour, opencv_head_contour):
     
-        self.__tail_contour_dict.clear()
-        self.__head_contour_dict.clear()
+        self.__tail_contour_dict = {}
+        self.__head_contour_dict = {}
 
         # Load Comet contour
         if opencv_tail_contour is not None:

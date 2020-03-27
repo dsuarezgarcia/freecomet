@@ -656,6 +656,13 @@ class MoveDelimiterPointsCommand(Command):
         # Activate Sample
         if self.controller.get_active_sample_id() != sample_id:
             self.controller.activate_sample(sample_id)
+            
+        # If 'free editing' mode, set Editing state with 'Editing Contours' mode
+        if self.controller.get_model().get_sample(sample_id).get_comet_being_edited_id() is None:
+        
+            canvas = self.controller.get_view().get_main_window().get_canvas()
+            canvas.get_editing_button().set_active(True)
+            canvas.get_editing_selection_button().set_active(True)
         
         # Move points to origin coordinates
         new_scale_ratio = self.controller.move_delimiter_points_to_origin(
