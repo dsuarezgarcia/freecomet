@@ -49,9 +49,9 @@ class Strings(object):
         self.OPEN_PROJECT_TOOLBAR_BUTTON_LABEL = _("Abrir")
         self.OPEN_PROJECT_TOOLBAR_BUTTON_TOOLTIP = _("Abrir un proyecto existente (Ctrl+O)")
         self.UNDO_TOOLBAR_BUTTON_LABEL = _("Deshacer")
-        self.UNDO_TOOLBAR_BUTTON_TOOLTIP = _("Deshacer última acción (Ctrl+Z)")
+        self.UNDO_TOOLBAR_BUTTON_TOOLTIP = _("Deshacer {} (Ctrl+Z)")
         self.REDO_TOOLBAR_BUTTON_LABEL = _("Rehacer")
-        self.REDO_TOOLBAR_BUTTON_TOOLTIP = _("Rehacer última acción (Ctrl+Y)")
+        self.REDO_TOOLBAR_BUTTON_TOOLTIP = _("Rehacer {} (Ctrl+Y)")
         self.FULLSCREEN_TOOLBAR_BUTTON_LABEL = _("Pantalla completa")
         self.FULLSCREEN_TOOLBAR_BUTTON_TOOLTIP = _("Modo pantalla completa (F12)")
 
@@ -164,7 +164,8 @@ class Strings(object):
         self.RENAME_BUTTON_LABEL = _("Cambiar nombre")
         self.DELETE_BUTTON_LABEL = _("Eliminar")
         self.FLIP_BUTTON_LABEL = _("Voltear horizontalmente")
-        self.INVERT_BUTTON_LABEL = _("Invertir color")     
+        self.INVERT_BUTTON_LABEL = _("Invertir color")
+        self.LAST_ACTION_LABEL = _("última acción")
         
         # Dialogs
         self.DIALOG_SAVE_BEFORE_ACTION_LABEL = _(
@@ -175,6 +176,22 @@ class Strings(object):
         self.DIALOG_ADD_SAMPLES_TITLE = _("Añadir muestras")
         self.DIALOG_SAVE_PROJECT_AS_TITLE = _("Guardar proyecto")
         self.DIALOG_SAVE_BEFORE_ACTION_TITLE = _("Advertencia - FreeComet")
+        
+        # Commands
+        self.ADD_SAMPLES_COMMAND_STRING = _("'Añadir Imágenes'")
+        self.DELETE_SAMPLE_COMMAND_STRING = _("'Eliminar Imagen'")
+        self.RENAME_SAMPLE_COMMAND_STRING = _("'Renombrar Imagen'")
+        self.ADD_COMET_COMMAND_STRING = _("'Añadir Cometa'")
+        self.DELETE_COMET_COMMAND_STRING = _("'Eliminar Cometa'")
+        self.REMOVE_COMET_TAIL_COMMAND_STRING = _("'Eliminar Cola de Cometa'")
+        self.ANALYZE_SAMPLES_COMMAND_STRING = _("'Analizar Imágenes'")
+        self.FLIP_SAMPLE_IMAGE_COMMAND = _("'Voltear Imagen'")
+        self.INVERT_SAMPLE_IMAGE_COMMAND = _("'Invertir Imagen'")
+        self.EDIT_COMET_CONTOURS_COMMAND = _("'Comenzar Edición de Cometa'")
+        self.CANCEL_EDIT_COMET_CONTOURS_COMMAND = _("'Finalizar Edición de Cometa'")
+        self.UPDATE_COMET_CONTOURS_COMMAND = _("'Actualizar Contornos de Cometa'")
+        self.MOVE_DELIMITER_POINTS_COMMAND = _("'Mover Punto/s Delimitador/es'")
+        
 
     ''' Translates the strings to spanish. '''
     def translate_to_spanish(self):

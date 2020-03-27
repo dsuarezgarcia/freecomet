@@ -615,6 +615,8 @@ class SelectionWindow(MyWindow):
     ''' Transition to 'comet being edited' page. '''
     def transition_to_comet_being_edited(self):
 
+        print("transition to comet being edited")
+
         # Show page 1
         self.__stack.set_visible_child_name(SelectionWindow.COMET_BEING_EDITED)
                 
@@ -663,8 +665,8 @@ class SelectionWindow(MyWindow):
                     self.__view.get_controller().get_strings().SELECTION_WINDOW_SELECTION_LABEL.format(
                         comet_number))
 
-                sensitive = comet_view.get_scaled_tail_contour() is not None 
-                self.__remove_tail_button.set_sensitive(sensitive)
+                self.__remove_tail_button.set_sensitive(
+                    comet_view.get_scaled_tail_contour() is not None)
 
             # No comets selected
             else:

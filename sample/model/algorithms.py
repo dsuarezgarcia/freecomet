@@ -307,7 +307,7 @@ class FreeComet(Algorithm):
         
         # Global Triangle thresholding method
         threshold, _ = facade.triangle_threshold(gs_image)
-        binary_image = utils.to_binary(gs_image, threshold)
+        binary_image = utils.to_binary_image(gs_image, threshold)
 
         # Debug
         if self.DEBUG:
@@ -438,7 +438,7 @@ class FreeComet(Algorithm):
                 utils.save_image(utils.renormalize_image(processed_roi), path)
  
             # [4.] OTSU THRESHOLD
-            heads_binary_image = utils.to_binary(processed_roi, facade.otsu_threshold(processed_roi, comet_mask))
+            heads_binary_image = utils.to_binary_image(processed_roi, facade.otsu_threshold(processed_roi, comet_mask))
 
             if self.DEBUG:
                 coordinates = numpy.where(heads_binary_image == 0)
@@ -513,7 +513,7 @@ class FreeComet(Algorithm):
                    not self.__is_valid_head_segmentation(head_mask, comet_contour)):
 
                 # [3.1] Otsu threshold
-                head_mask = utils.to_binary(processed_head, facade.otsu_threshold(processed_head, head_mask))           
+                head_mask = utils.to_binary_image(processed_head, facade.otsu_threshold(processed_head, head_mask))           
 
                 # [3.2] Update head after threshold
                 coordinates = numpy.where(head_mask == 0)
@@ -921,7 +921,7 @@ class OpenComet(Algorithm):
 
         # Huang's thresholding method
         threshold = facade.huang_threshold(image)
-        image = utils.to_binary(image, threshold)
+        image = utils.to_binary_image(image, threshold)
 
         if self.DEBUG:
             path = self.create_debug_path("Huang threshold " + str(threshold))          
@@ -1166,12 +1166,12 @@ class OpenComet(Algorithm):
 
         n = utils.get_contour_area(contour) * 0.05
         threshold = 254
-        binary_image = utils.to_binary(roi, threshold)
+        binary_image = utils.to_binary_image(roi, threshold)
         # Umbralization is applied until 5% of the pixels which
         # intensity is greater than the threshold are found
         n_brightest = numpy.count_nonzero(binary_image)
         while threshold > 0 and n_brightest < n:
-            binary_image = utils.to_binary(roi, threshold)                        
+            binary_image = utils.to_binary_image(roi, threshold)                        
             n_brightest = numpy.count_nonzero(binary_image)
             threshold -= 1
 

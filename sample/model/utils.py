@@ -50,20 +50,68 @@ def display_image(image, window_name=None):
 
 def save_image(image, path):
     return cv2.imwrite(path, image)
+    
+    
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+#                                   Images                                    #
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 
 def normalize_image(image):
     return (image / (constants.MAX_VALUE)).astype(numpy.float64)
 
 def renormalize_image(image):
     return (image * (constants.MAX_VALUE)).astype(numpy.uint8)
+    
+def flip_image_horizontally(image):
+    return numpy.fliplr(image)
 
-def to_binary(image, threshold):
+def invert_image(image):
+    return (constants.MAX_VALUE) - image     
+
+def to_binary_image(image, threshold):
 
     return cv2.threshold(renormalize_image(image),
                          threshold, 
                          constants.MAX_VALUE,
                          cv2.THRESH_BINARY
            )[1]
+           
+def to_gray_image(image):
+    return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) 
+
+def get_red_from_image(image):
+
+    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+    left_lower_red = numpy.array([0, 100, 30])
+    left_upper_red = numpy.array([10, 255, 255])
+    right_lower_red = numpy.array([170, 100, 30])
+    right_upper_red = numpy.array([180, 255, 255])
+
+    left_mask = cv2.inRange(hsv_image, left_lower_red, left_upper_red)
+    right_mask = cv2.inRange(hsv_image, right_lower_red, right_upper_red)
+    mask = cv2.bitwise_or(left_mask, right_mask)
+    return cv2.bitwise_and(image, image, mask=mask)
+
+def image_to_pixbuf(image):
+
+    image = image[...,[2, 1, 0]]
+    height, width, channels = image.shape
+    # Returning a copy is a must ... believe me
+    return GdkPixbuf.Pixbuf.new_from_data(image.tostring(),
+        GdkPixbuf.Colorspace.RGB, False, 8, width, height, width*channels).copy()
+
+def compress_image(image):
+    return cv2.imencode('.png', image)[1].tostring()
+
+def decompress_image(data):
+    return cv2.imdecode(numpy.fromstring(data, numpy.uint8), cv2.IMREAD_COLOR)
+
+   
+   
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+#                               Contours & Points                             #
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 
 def find_contours(binary_image, retrieval_mode=None, aproximation_method=None):
 
@@ -109,6 +157,9 @@ def draw_ellipse(image, center, axes, angle, color=None, thickness=None, half=Fa
 
     cv2.ellipse(image, center, axes, angle, start_angle, 360, color, thickness)
 
+def get_contour_area(contour):
+    return cv2.contourArea(contour)
+
 def get_contour_convexity(contour):
 
     try:
@@ -116,26 +167,7 @@ def get_contour_convexity(contour):
                 get_contour_area(get_contour_convex_hull(contour)))
     except:
         return None
-
-def get_contour_convex_hull(contour):
-    return cv2.convexHull(contour, False)
-
-def create_enclosing_rectangle(contour):
-    return cv2.boundingRect(contour)
-
-def get_contour_rect_contour(contour):
-
-    x, y, width, height = create_enclosing_rectangle(contour)
-    p1, p2, p3, p4 = (x, y), (x, y + height), (x+width, y+height), (x+width, y)
-    return numpy.array([[p1], [p2], [p3], [p4]])
-
-def is_point_inside_contour(contour, point):
-    # cv2.pointPolygonTest > 0 (inside), < 0 (outside), == 0 (on an edge)
-    return (cv2.pointPolygonTest(contour, point, False) >= 0)
-
-def get_contour_area(contour):
-    return cv2.contourArea(contour)
-
+        
 def get_contour_circularity(contour):
 
         contour_perimeter = get_contour_perimeter(contour)
@@ -148,12 +180,14 @@ def get_contour_circularity(contour):
 def get_contour_perimeter(contour):
         return cv2.arcLength(contour, True)
 
-def is_contour_on_border(image, contour):
+def get_contour_convex_hull(contour):
+    return cv2.convexHull(contour, False)
+    
+def get_contour_rect_contour(contour):
 
-    height, width = image.shape
-    for point in contour:
-        if point[0][0] in (0, width-1) or point[0][1] in (0, height-1): 
-            return True
+    x, y, width, height = create_enclosing_rectangle(contour)
+    p1, p2, p3, p4 = (x, y), (x, y + height), (x+width, y+height), (x+width, y)
+    return numpy.array([[p1], [p2], [p3], [p4]])  
 
 def get_contour_centroid(contour, binary=False):
 
@@ -172,7 +206,31 @@ def get_contour_topmost_point(contour):
     return tuple(contour[contour[:, :, 1].argmin()][0])
 
 def get_contour_bottonmost_point(contour):
-    return tuple(contour[contour[:, :, 1].argmax()][0])
+    return tuple(contour[contour[:, :, 1].argmax()][0])    
+
+def is_point_inside_contour(contour, point):
+    # cv2.pointPolygonTest > 0 (inside), < 0 (outside), == 0 (on an edge)
+    return (cv2.pointPolygonTest(contour, point, False) >= 0)
+
+def is_contour_on_border(image, contour):
+
+    height, width = image.shape
+    for point in contour:
+        if point[0][0] in (0, width-1) or point[0][1] in (0, height-1): 
+            return True
+
+def create_enclosing_rectangle(contour):
+    return cv2.boundingRect(contour)
+
+def create_contour_mask(contour, image, rec=None):
+
+    if rec is None:
+        x, y, width, height = create_enclosing_rectangle(contour)
+    else:
+        x, y, width, height = rec
+    mask = numpy.zeros(image.shape, dtype=numpy.uint8)
+    draw_contours(mask, [contour])
+    return mask[y:y+height, x:x+width]
 
 def create_expanded_contour_mask(contour, image, offset):
 
@@ -189,16 +247,13 @@ def create_expanded_contour_mask(contour, image, offset):
     rec = (x_offset, y_offset, expanded_width, expanded_height)
     return create_contour_mask(contour, image, rec), rec
 
-def create_contour_mask(contour, image, rec=None):
+def scale_canvas_contour_dict(canvas_contour_dict, scale_ratio):
 
-    if rec is None:
-        x, y, width, height = create_enclosing_rectangle(contour)
-    else:
-        x, y, width, height = rec
-    mask = numpy.zeros(image.shape, dtype=numpy.uint8)
-    draw_contours(mask, [contour])
-    return mask[y:y+height, x:x+width]
-
+    for (_, canvas_contour) in canvas_contour_dict.items():
+        scale_delimiter_point_list(
+            canvas_contour.get_delimiter_point_list(),
+            scale_ratio
+        )
 def scale_delimiter_point_list(delimiter_point_list, scale_ratio):
 
     for delimiter_point in delimiter_point_list:
@@ -257,42 +312,10 @@ def merge_contours(contour1, contour2):
                         contour_to_list(contour2))
     )
 
-def get_red_from_image(image):
 
-    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-
-    left_lower_red = numpy.array([0, 100, 30])
-    left_upper_red = numpy.array([10, 255, 255])
-    right_lower_red = numpy.array([170, 100, 30])
-    right_upper_red = numpy.array([180, 255, 255])
-
-    left_mask = cv2.inRange(hsv_image, left_lower_red, left_upper_red)
-    right_mask = cv2.inRange(hsv_image, right_lower_red, right_upper_red)
-    mask = cv2.bitwise_or(left_mask, right_mask)
-    return cv2.bitwise_and(image, image, mask=mask)
-
-def to_gray_image(image):
-    return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-def image_to_pixbuf(image):
-
-    image = image[...,[2, 1, 0]]
-    height, width, channels = image.shape
-    # Returning a copy is a must ... believe me
-    return GdkPixbuf.Pixbuf.new_from_data(image.tostring(),
-        GdkPixbuf.Colorspace.RGB, False, 8, width, height, width*channels).copy()
-
-def compress_image(image):
-    return cv2.imencode('.png', image)[1].tostring()
-
-def decompress_image(data):
-    return cv2.imdecode(numpy.fromstring(data, numpy.uint8), cv2.IMREAD_COLOR)
-
-def flip_image_horizontally(image):
-    return numpy.fliplr(image)
-
-def invert_image(image):
-    return (constants.MAX_VALUE) - image
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+#                                   Geometry                                  #
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 
 def euclidean_distance(point1, point2):
     return numpy.sqrt(((point1[0]-point2[0]) * (point1[0]-point2[0])) + 

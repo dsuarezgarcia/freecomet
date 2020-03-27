@@ -80,8 +80,11 @@ class CanvasModel(metaclass=Singleton):
         # So we don't save anything if the comet contours remained the same.
         self.__comet_being_edited_has_changed = False
         
+        TailContourBuilder()
+        HeadContourBuilder()
+        
 
-     
+   
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 #                                   Methods                                   #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #        
@@ -107,7 +110,6 @@ class CanvasModel(metaclass=Singleton):
             HeadContourBuilder.get_instance()
         )           
         self.__root_delimiter_point = None
-    
     
     ''' Loads an OpenCV contour into the contour dictionary. '''
     def load_opencv_contour(self, opencv_contour, building_instance):
@@ -210,7 +212,8 @@ class CanvasModel(metaclass=Singleton):
 
         return delimiter_point_list 
         
-    ''' Deletes the DelimiterPoints with given IDs on given list. If the list
+    ''' 
+        Deletes the DelimiterPoints with given IDs on given list. If the list
         is empty, the requested points to be deleted are the selected ones.
     '''    
     def delete_delimiter_points(self, delimiter_point_id_list):
@@ -251,7 +254,22 @@ class CanvasModel(metaclass=Singleton):
                 if delimiter_point.get_roommate() is not None:
                     delimiter_point.get_roommate().set_roommate(None)
 
-          
+    ''' Returns the DelimiterPoint with given ID. '''
+    def get_delimiter_point(self, delimiter_point_id, delimiter_point_type, canvas_contour_id):
+    
+        if delimiter_point_type == DelimiterPointType.TAIL:
+            canvas_contour_dict = self.__tail_contour_dict
+        else:
+            canvas_contour_dict = self.__head_contour_dict
+            
+        delimiter_point_list = canvas_contour_dict[canvas_contour_id].\
+                                   get_delimiter_point_list()
+    
+        # Search for DelimiterPoint
+        for delimiter_point in delimiter_point_list:          
+            if delimiter_point.get_id() == delimiter_point_id:
+                return delimiter_point
+        
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 #                               Private Methods                               #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #            
@@ -444,7 +462,7 @@ class SelectionArea(metaclass=Singleton):
         return (x, y, width, height)
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
-#                             Getters & Setters                               #
+#                              Getters & Setters                              #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 
     def get_starting_point(self):
@@ -510,10 +528,13 @@ class SelectedDelimiterPoint(object):
     '''
 
     ''' Initialization method. '''
-    def __init__(self, id):
+    def __init__(self, id, type, canvas_contour_id):
 
         self.__id = id
         self.__origin = None
+        self.__type = type
+        self.__canvas_contour_id = canvas_contour_id
+
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 #                             Getters & Setters                               #
@@ -527,6 +548,18 @@ class SelectedDelimiterPoint(object):
 
     def set_origin(self, origin):
         self.__origin = origin
+        
+    def get_type(self):
+        return self.__type
+        
+    def set_type(self, type):
+        self.__type = type
+        
+    def get_canvas_contour_id(self):
+        return self.__canvas_contour_id
+        
+    def set_canvas_contour_id(self, canvas_contour_id):
+        self.__canvas_contour_id = canvas_contour_id
 
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
@@ -1015,31 +1048,21 @@ def make_neighbors(delimiter_point1, delimiter_point2):
     delimiter_point1.get_neighbors().append(delimiter_point2)
     delimiter_point2.get_neighbors().append(delimiter_point1)
 
-''' Returns whether given CanvasContours are nested or not. '''
-def contours_are_nested(contour1, contour2):
+''' 
+    Returns whether given first CanvasContour is nested to second
+    CanvasContour.
+'''
+def contours_are_nested(canvas_contour1, canvas_contour2):
 
-    if (len(contour1.get_delimiter_point_list()) >
-       len(contour2.get_delimiter_point_list())):
-
-        delimiter_point_list = contour2.get_delimiter_point_list()
-        point_list = [point.get_coordinates() for point in
-                      contour1.get_delimiter_point_list()]        
-        cv2_contour = utils.list_to_contour(point_list)
-
-    else:
-
-        delimiter_point_list = contour1.get_delimiter_point_list()
-        point_list = [point.get_coordinates() for point in
-                      contour2.get_delimiter_point_list()]
-        cv2_contour = utils.list_to_contour(point_list)        
+    point_list = [point.get_coordinates() for point in
+                  canvas_contour2.get_delimiter_point_list()]
+    cv2_contour = utils.list_to_contour(point_list)        
          
-
-    for delimiter_point in delimiter_point_list:
+    for delimiter_point in canvas_contour1.get_delimiter_point_list():
         
         if (utils.is_point_inside_contour(
             cv2_contour, delimiter_point.get_coordinates())):
             return True
-
 
     return False 
 

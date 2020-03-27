@@ -19,19 +19,15 @@ class Command(object):
 
     ''' Initialization method. '''
     def __init__(self, controller):
-        self.controller = controller
-        self.sample_to_activate_id = controller.get_active_sample_id()
-        self.comet_to_select_id = None
-        self.comet_to_select_id = \
-            controller.get_active_sample_selected_comet_id()
-        self.comet_being_edited_has_changed_to_set = controller.\
-            get_comet_being_edited_has_changed()
+    
+        self.controller = controller       
         self.__flag_unsaved_changes = controller.get_flag_unsaved_changes()
         self.__data = None
+        self.__string = ""
 
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
-# ~                                 Methods                                 ~ #
+#                                   Methods                                   #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 
     ''' Execute Command method. '''
@@ -41,39 +37,7 @@ class Command(object):
     ''' Undo Command method. '''
     def undo(self, *args):
         raise NotImplementedError("This method must be implemented.")
-
-    ''' Retrieves the needed data before execution. '''
-    def retrieve_data(self):
-        self.comet_being_edited_has_changed = \
-            self.controller.get_comet_being_edited_has_changed()
-        self.active_sample_id = self.controller.get_active_sample_id()
-        self.selected_comet_id = None
-        self.selected_comet_id = \
-            self.controller.get_active_sample_selected_comet_id()
-        return self.__data
-
-    ''' Saves the needed data for the next execution. '''
-    def save_data(self, data):
-
-        # Activate previously active sample
-        if self.sample_to_activate_id is not None:
-            self.controller.activate_sample(self.sample_to_activate_id)
-            
-        # Select previously selected comet
-        if self.comet_to_select_id is not None:
-            self.controller.select_comet(
-                self.controller.get_active_sample_id(),
-                self.comet_to_select_id
-            )
-            
-        self.controller.set_comet_being_edited_has_changed(
-            self.comet_being_edited_has_changed_to_set)
-        # Set values for next execution
-        self.sample_to_activate_id = self.active_sample_id
-        self.comet_to_select_id = self.selected_comet_id
-        # Store data
-        self.__data = data
-
+        
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 #                             Getters & Setters                               #
@@ -90,6 +54,12 @@ class Command(object):
 
     def set_data(self, data):
         self.__data = data
+           
+    def get_string(self):
+        return self.__string
+        
+    def set_string(self, string):
+        self.__string = string
 
     
 
@@ -105,14 +75,15 @@ class AddSamplesCommand(Command):
         The AddSamplesCommand class. Extends from Command.
     '''
 
+    ''' Initialization method. '''
     def __init__(self, controller):
         super().__init__(controller)
 
-    ''' Adds new samples. '''
+    ''' Command.execute() behaviour. '''
     def execute(self):
 
         # Retrieve data
-        data = self.retrieve_data()
+        data = self.get_data()
       
         new_data = []
         # Redo execution
@@ -124,13 +95,13 @@ class AddSamplesCommand(Command):
             new_data.append(sample.get_id())
 
         # Save data        
-        self.save_data(new_data)
+        self.set_data(new_data)
 
-    ''' Deletes the added samples. '''
+    ''' Command.undo() behaviour. '''
     def undo(self):
 
         # Retrieve data
-        data = self.retrieve_data()
+        data = self.get_data()
 
         new_data = []
         # Undo execution
@@ -140,10 +111,11 @@ class AddSamplesCommand(Command):
             (sample_copy, parameters, _) = self.controller.\
                                                delete_sample(sample_id)
             new_data.append((sample_copy, parameters))
-
-        # Save data
+            
         new_data.reverse()
-        self.save_data(new_data)
+
+        # Save data       
+        self.set_data(new_data)
 
 
 
@@ -159,27 +131,34 @@ class DeleteSampleCommand(Command):
         The DeleteSample class. Extends from Command.
     '''
 
+    ''' Initialization method. '''
     def __init__(self, controller):
         super().__init__(controller)
 
+    ''' Command.execute() behaviour. '''
     def execute(self):
 
         # Retrieve data
-        sample_id = self.retrieve_data()
+        sample_id = self.get_data()
+        
         # Delete sample
         (sample_copy, parameters, pos) = self.controller.delete_sample(sample_id)
+        
         # Save data
-        self.save_data((sample_copy, parameters, pos))
+        self.set_data((sample_copy, parameters, pos))
 
+    ''' Command.undo() behaviour. '''
     def undo(self):
 
         # Retrieve data
-        (sample, parameters, pos) = self.retrieve_data()
+        (sample, parameters, pos) = self.get_data()
+        
         # Add sample
         self.controller.add_sample(sample, parameters, pos)
+        
         # Save data
-        self.save_data(sample.get_id())
-
+        self.set_data(sample.get_id())
+    
 
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
@@ -198,21 +177,26 @@ class RenameSampleCommand(Command):
     def __init__(self, controller):
         super().__init__(controller)
 
+    ''' Command.execute() behaviour. '''
     def execute(self):
         self.__rename()
 
+    ''' Command.undo() behaviour. '''
     def undo(self):
         self.__rename()
 
+    ''' Renames Sample's name with given ID. '''
     def __rename(self):
 
         # Retrieve data   
-        (sample_id, sample_name) = self.retrieve_data()
+        (sample_id, sample_name) = self.get_data()
+        
         # Rename Sample
         previous_name = self.controller.rename_sample(
                             sample_id, sample_name)
+                            
         # Save data
-        self.save_data((sample_id, previous_name))
+        self.set_data((sample_id, previous_name))
 
 
 
@@ -232,28 +216,40 @@ class AddCometCommand(Command):
     def __init__(self, controller):
         super().__init__(controller)
 
+    ''' Command.execute() behaviour. '''
     def execute(self):
 
         # Retrieve data
-        (sample_id, comet, pos) = self.retrieve_data()         
+        (sample_id, comet, pos) = self.get_data() 
+        
         # Add comet
-        self.controller.add_comet(sample_id, comet, pos)            
+        self.controller.add_comet(sample_id, comet, pos)
+        # Activate Sample
+        if self.controller.get_active_sample_id() != sample_id:
+            self.controller.activate_sample(sample_id)
+            
         # Save data
-        self.save_data((sample_id, comet.get_id(), 
+        self.set_data((sample_id, comet.get_id(), 
             self.controller.get_model().get_sample(sample_id).get_analyzed()))
 
+    ''' Command.undo() behaviour. '''
     def undo(self):
 
         # Retrieve data
-        (sample_id, comet_id, analyzed_flag) = self.retrieve_data()        
+        (sample_id, comet_id, analyzed_flag) = self.get_data()  
+        
         # Delete comet
         (comet_copy, pos) = self.controller.delete_comet(
                                 sample_id, comet_id)
+        # Activate Sample
+        if self.controller.get_active_sample_id() != sample_id:
+            self.controller.activate_sample(sample_id)                        
         # Set analyzed flag
         self.controller.set_sample_analyzed_flag(
             sample_id, analyzed_flag)
+            
         # Save data
-        self.save_data((sample_id, comet_copy, pos))
+        self.set_data((sample_id, comet_copy, pos))
 
 
 
@@ -273,24 +269,38 @@ class DeleteCometCommand(Command):
     def __init__(self, controller):
         super().__init__(controller)
 
+    ''' Command.execute() behaviour. '''
     def execute(self):
 
         # Retrieve data
-        (sample_id, comet_id) = self.retrieve_data()
+        (sample_id, comet_id) = self.get_data()
+        
         # Delete comet
         (comet_copy, pos) = self.controller.delete_comet(
                                 sample_id, comet_id)
+        # Activate Sample
+        if self.controller.get_active_sample_id() != sample_id:
+            self.controller.activate_sample(sample_id)
+            
         # Save data
-        self.save_data((sample_id, comet_copy, pos))
+        self.set_data((sample_id, comet_copy, pos))
 
+    ''' Command.undo() behaviour. '''
     def undo(self):
 
         # Retrieve data
-        (sample_id, comet, pos) = self.retrieve_data()         
+        (sample_id, comet, pos) = self.get_data()
+        
         # Add comet
-        self.controller.add_comet(sample_id, comet, pos)
+        self.controller.add_comet(sample_id, comet, pos)        
+        # Activate Sample
+        if self.controller.get_active_sample_id() != sample_id:
+            self.controller.activate_sample(sample_id)
+        # Select comet
+        self.controller.select_comet(sample_id, comet.get_id())
+        
         # Save data
-        self.save_data((sample_id, comet.get_id()))
+        self.set_data((sample_id, comet.get_id()))
 
 
 
@@ -310,25 +320,41 @@ class RemoveCometTailCommand(Command):
     def __init__(self, controller):
         super().__init__(controller)
 
+    ''' Command.execute() behaviour. '''
     def execute(self):
 
         # Retrieve data
-        (sample_id, comet_id) = self.retrieve_data()
+        (sample_id, comet_id) = self.get_data()
+        
         # Remove comet tail
         comet_contour = self.controller.remove_comet_tail(
-                            sample_id, comet_id)
+                            sample_id, comet_id)                           
+        # Activate Sample
+        if self.controller.get_active_sample_id() != sample_id:
+            self.controller.activate_sample(sample_id)        
+        # Select comet
+        self.controller.select_comet(sample_id, comet_id)                    
+                            
         # Save data
-        self.save_data((sample_id, comet_id, comet_contour))
+        self.set_data((sample_id, comet_id, comet_contour))
 
+    ''' Command.undo() behaviour. '''
     def undo(self):
 
         # Retrieve data
-        (sample_id, comet_id, comet_contour) = self.retrieve_data()
+        (sample_id, comet_id, comet_contour) = self.get_data()
         # Add comet tail
         self.controller.add_comet_tail(
             sample_id, comet_id, comet_contour)
+
+        # Activate Sample
+        if self.controller.get_active_sample_id() != sample_id:
+            self.controller.activate_sample(sample_id)        
+        # Select comet
+        self.controller.select_comet(sample_id, comet_id)
+        
         # Save data
-        self.save_data((sample_id, comet_id))
+        self.set_data((sample_id, comet_id))
 
 
 
@@ -347,21 +373,24 @@ class AnalyzeSamplesCommand(Command):
     ''' Initialization method. '''
     def __init__(self, controller):
         super().__init__(controller)
-
+   
+    ''' Command.execute() behaviour. '''
     def execute(self):
         self.__update_samples_comet_list()
-        
+    
+    ''' Command.undo() behaviour. '''
     def undo(self):
         self.__update_samples_comet_list()
 
+    ''' Updates the Comets for a Sample. '''
     def __update_samples_comet_list(self):
 
         # Retrieve data
-        data = self.retrieve_data()
+        data = self.get_data()
         # Replace sample's comet lists
         new_data = self.controller.update_samples_comet_list(data)
         # Save data
-        self.save_data(new_data)
+        self.set_data(new_data)
 
 
 
@@ -381,9 +410,11 @@ class FlipSampleImageCommand(Command):
     def __init__(self, controller):
         super().__init__(controller)
     
+    ''' Command.execute() behaviour. '''
     def execute(self):
         self.controller.flip_sample_image(self.get_data())
         
+    ''' Command.undo() behaviour. '''    
     def undo(self):
         self.controller.flip_sample_image(self.get_data())
 
@@ -405,12 +436,92 @@ class InvertSampleImageCommand(Command):
     def __init__(self, controller):
         super().__init__(controller)
     
+    ''' Command.execute() behaviour. '''
     def execute(self):
         self.controller.invert_sample_image(self.get_data())
         
+    ''' Command.undo() behaviour. '''    
     def undo(self):
         self.controller.invert_sample_image(self.get_data())
 
+
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+#                                                                             #
+#   EditCometContoursCommand                                                  #
+#                                                                             #
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+
+class EditCometContoursCommand(Command):
+
+    '''
+        The EditCometContoursCommand class. Extends from Command.
+    '''
+
+    ''' Initialization method. '''
+    def __init__(self, controller):
+        super().__init__(controller)
+
+    ''' Command.execute() behaviour. '''
+    def execute(self):
+    
+        # Activate Sample
+        self.controller.activate_sample(self.get_data()[0])
+        
+        # Update Comet as being edited
+        self.controller.start_comet_being_edited(*self.get_data())
+
+    ''' Command.undo() behaviour. '''
+    def undo(self):
+
+        # Retrieve data
+        (sample_id, comet_id, _, _) = self.get_data()
+        
+        # Activate Sample
+        self.controller.activate_sample(sample_id)
+        # Select Comet
+        self.controller.select_comet(sample_id, comet_id)
+        # Update Comet as not being edited
+        self.controller.quit_comet_being_edited()
+
+ 
+ 
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+#                                                                             #
+#   CancelEditCometContoursCommand                                            #
+#                                                                             #
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+
+class CancelEditCometContoursCommand(Command):
+
+    '''
+        The CancelEditCometContoursCommand class. Extends from Command.
+    '''
+
+    ''' Initialization method. '''
+    def __init__(self, controller):
+        super().__init__(controller)
+
+    ''' Command.execute() behaviour. '''
+    def execute(self):
+    
+        # Retrieve data
+        data = self.get_data()      
+        # Activate Sample
+        self.controller.activate_sample(data[0])
+        # Quit Comet being edited
+        self.controller.quit_comet_being_edited()
+
+    ''' Command.undo() behaviour. '''
+    def undo(self):
+          
+        # Retrieve data  
+        data = self.get_data()  
+        # Activate Sample
+        self.controller.activate_sample(data[0])  
+        # Start Comet being edited  
+        self.controller.start_comet_being_edited(*data)
+        
 
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
@@ -429,33 +540,105 @@ class UpdateCometContoursCommand(Command):
     def __init__(self, controller):
         super().__init__(controller)
 
-    def execute(self):
-                  
+    ''' Command.execute() behaviour. '''
+    def execute(self):                          
         self.__update_comet_contours()
 
-        '''
-        canvas = self.controller.get_view().get_main_window().\
-            get_canvas()
-        canvas.get_selection_button().set_active(True)
-        '''
-
+    ''' Command.undo() behaviour. '''
     def undo(self):
-
         self.__update_comet_contours()
-        
-        '''
-        (sample_id, data) = self.retrieve_data()
-        self.controller.get_view().edit_comet_contour(
-            sample_id, *data)
-        '''
-
+      
+    ''' Updates the Comet's contours. '''
     def __update_comet_contours(self):
 
         # Retrieve data
-        (sample_id, data) = self.retrieve_data()
+        (sample_id, data) = self.get_data()
 
         new_data = self.controller.update_comet_contours(sample_id, *data)
 
         # Save data
-        self.save_data((sample_id, new_data))
+        self.set_data((sample_id, new_data))
+
+
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+#                                                                             #
+#   CreateDelimiterPointCommand                                               #
+#                                                                             #
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+
+class CreateDelimiterPointCommand(Command):
+
+    '''
+        The CreateDelimiterPointCommand class. Extends from Command.
+    '''
+
+    ''' Initialization method. '''
+    def __init__(self, controller):
+        super().__init__(controller)
+
+    ''' Command.execute() behaviour. '''
+    def execute(self):
+    
+        # Retrieve data
+        (sample_id, data) = self.get_data()
+                  
+        new_data = self.controller.create_delimiter_point(sample_id, *data)
+
+        # Save data
+        self.set_data((sample_id, new_data))
+
+    ''' Command.undo() behaviour. '''
+    def undo(self):
+
+        # Retrieve data
+        (sample_id, data) = self.get_data()
+                  
+        new_data = self.controller.delete_delimiter_point(sample_id, *data)
+
+        # Save data
+        self.set_data((sample_id, new_data))
+ 
+
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+#                                                                             #
+#   MoveDelimiterPointsCommand                                                #
+#                                                                             #
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ # 
+        
+class MoveDelimiterPointsCommand(Command):
+
+    '''
+        The MoveDelimiterPointsCommand class. Extends from Command.
+    '''
+
+    ''' Initialization method. '''
+    def __init__(self, controller):
+        super().__init__(controller)
+    
+    ''' Command.execute() behaviour. '''
+    def execute(self):
+        self.__move_delimiter_points()
+        
+    ''' Command.undo() behaviour. '''
+    def undo(self):
+        self.__move_delimiter_points()
+        
+    ''' Moves the DelimiterPoints to its origin. '''    
+    def __move_delimiter_points(self): 
+
+        # Retrieve data
+        (sample_id, delimiter_point_selection, scale_ratio) = self.get_data()
+        
+        # Activate Sample
+        if self.controller.get_active_sample_id() != sample_id:
+            self.controller.activate_sample(sample_id)
+        
+        # Move points to origin coordinates
+        new_scale_ratio = self.controller.move_delimiter_points_to_origin(
+            delimiter_point_selection, scale_ratio)
+            
+        # Save data
+        self.set_data((sample_id, delimiter_point_selection, new_scale_ratio))
 

@@ -7,6 +7,7 @@
 # General imports
 import os
 import sys
+import copy
 import ntpath
 import itertools
 
@@ -29,7 +30,9 @@ from controller.threads import ThreadWithException
 import controller.commands as commands
 
 import model.utils as utils
-from model.model import Model, Sample, Comet
+from model.model import Model
+from model.sample import Sample
+from model.comet import Comet
 from model.canvas_model import CanvasModel, contours_are_nested
 
 
@@ -51,6 +54,10 @@ class Controller(object):
     
         # Active Sample ID
         self.__active_sample_id = None
+        
+        # Undo & Redo stacks
+        self.__undo_stack = []
+        self.__redo_stack = []
 
         # Strings
         self.__strings = strings
@@ -74,10 +81,6 @@ class Controller(object):
         self.__view.set_application_window_title(
             self.__build_application_window_title())        
         self.__view.set_strings(strings)
-
-        # Undo & Redo stacks
-        self.__undo_stack = []
-        self.__redo_stack = []
 
         # Start UI
         self.__view.start()
@@ -224,8 +227,9 @@ class Controller(object):
     ''' 'Rename sample' functioanlity. '''
     def rename_sample_use_case(self, sample_id, text):
 
-        # Prepare the RenameSample command
+        # Prepare the RenameSampleCommand
         command = commands.RenameSampleCommand(self)
+        command.set_string(self.__strings.RENAME_SAMPLE_COMMAND_STRING)
 
         # Only valid characters for a filename
         try:
@@ -239,20 +243,21 @@ class Controller(object):
         # Rename sample
         previous_name = self.rename_sample(sample_id, sample_name)
 
-        # Add RenameSample Command to the undo stack
+        # Add RenameSampleCommand to the undo stack
         command.set_data((sample_id, previous_name))               
         self.__add_command(command)
 
     ''' 'Delete sample' use case. '''
     def delete_sample_use_case(self, sample_id):
 
-        # Prepare the DeleteSample command
+        # Prepare the DeleteSampleCommand
         command = commands.DeleteSampleCommand(self)
+        command.set_string(self.__strings.DELETE_SAMPLE_COMMAND_STRING)
 
         # Delete sample
         (sample_copy, sample_parameters, pos) = self.delete_sample(sample_id)
 
-        # Add DeleteSample Command to the undo stack              
+        # Add DeleteSampleCommand to the undo stack              
         command.set_data((sample_copy, sample_parameters, pos))  
         self.__add_command(command)
 
@@ -276,13 +281,14 @@ class Controller(object):
     ''' 'Add new comet' use case. '''
     def add_new_comet_use_case(self, sample_id, tail_contour, head_contour):
         
-        # Prepare the AddComet command
+        # Prepare the AddCometCommand
         command = commands.AddCometCommand(self)
+        command.set_string(self.__strings.ADD_COMET_COMMAND_STRING)
 
         # Add comet
         comet_id = self.add_new_comet(sample_id, tail_contour, head_contour)
 
-        # Add AddComet command to the stack
+        # Add AddCometCommand to the stack
         command.set_data((sample_id, comet_id, 
             self.__model.get_sample(sample_id).get_analyzed()))
         self.__add_command(command)
@@ -290,39 +296,91 @@ class Controller(object):
     ''' 'Delete comet' use case. '''
     def delete_comet_use_case(self, sample_id, comet_id):
 
-        # Prepare the DeleteComet command
+        # Prepare the DeleteCometCommand
         command = commands.DeleteCometCommand(self)
+        command.set_string(self.__strings.DELETE_COMET_COMMAND_STRING)
 
         # Delete comet
         (comet_copy, pos) = self.delete_comet(sample_id, comet_id)
 
-        # Add DeleteComet command to the stack
+        # Add DeleteCometCommand to the stack
         command.set_data((sample_id, comet_copy, pos))
         self.__add_command(command)
-
-    ''' 'Edit comet contour' use case. '''
-    def edit_comet_contours_use_case(self, sample_id, comet_id, tail_contour, head_contour):
+        
+    ''' 'Edit comet contours' use case. ''' 
+    def edit_comet_contours_use_case(self, sample_id, comet_id):
     
+        # Prepare the EditCometContoursCommand
+        command = commands.EditCometContoursCommand(self)
+        command.set_string(self.__strings.EDIT_COMET_CONTOURS_COMMAND_STRING)
+
+        # Start Comet being edited
+        self.start_comet_being_edited(sample_id, comet_id)
+
+        # Add EditCometContoursCommand to the undo stack
+        data = (sample_id,
+                comet_id,
+                CanvasModel.get_instance().get_tail_contour_dict().copy(),
+                CanvasModel.get_instance().get_head_contour_dict().copy()
+               )               
+        command.set_data(data)                      
+        self.__add_command(command)
+
+    ''' 'Cancel edit comet contours' use case. '''
+    def cancel_edit_comet_contours_use_case(self):
+    
+        # Prepare the CancelEditCometContoursCommand
+        command = commands.CancelEditCometContoursCommand(self)
+        comet_id = self.__model.get_sample(self.__active_sample_id).get_comet_being_edited_id()
+        
+        # CanvasContours are parsed to ratio 1.
+        scale_ratio = 1. / self.get_sample_zoom_value(self.__active_sample_id)
+        
+        tail_contour_dict = copy.deepcopy(CanvasModel.get_instance().get_tail_contour_dict())
+        head_contour_dict = copy.deepcopy(CanvasModel.get_instance().get_head_contour_dict())    
+        utils.scale_canvas_contour_dict(tail_contour_dict, scale_ratio)
+        utils.scale_canvas_contour_dict(head_contour_dict, scale_ratio)
+       
+        data = (
+            self.__active_sample_id, 
+            comet_id,
+            tail_contour_dict,
+            head_contour_dict
+        )
+        command.set_data(data)
+      
+        # Quit Comet being edited
+        self.quit_comet_being_edited()
+        
+        # Add CancelEditCometContoursCommand to the undo stack                    
+        self.__add_command(command)
+
+    ''' 'Update comet contour' use case. '''
+    def update_comet_contours_use_case(self, sample_id, comet_id, tail_contour, head_contour):
+    
+        # Prepare the UpdateCometContoursCommand
         command = commands.UpdateCometContoursCommand(self)
+        command.set_string(self.__strings.UPDATE_COMET_CONTOURS_COMMAND_STRING)
 
         (_, old_tail_contour, old_head_contour) = self.update_comet_contours(
             sample_id, comet_id, tail_contour, head_contour)
 
         data = (comet_id, old_tail_contour, old_head_contour)
-        # Add UpdateCometContours Command to the undo stack
+        # Add UpdateCometContoursCommand to the undo stack
         command.set_data((sample_id, data))                      
         self.__add_command(command)
         
     ''' 'Remove comet tail' use case. '''
     def remove_comet_tail_use_case(self, sample_id, comet_id):
 
-        # Prepare the RemoveCometTail command
+        # Prepare the RemoveCometTailCommand
         command = commands.RemoveCometTailCommand(self)
+        command.set_string(self.__strings.REMOVE_COMET_TAIL_COMMAND_STRING)
 
         # Remove comet tail
         tail_contour = self.remove_comet_tail(sample_id, comet_id)
 
-        # Add RemoveCometTail command to the stack
+        # Add RemoveCometTailCommand to the stack
         command.set_data((sample_id, comet_id, tail_contour))
         self.__add_command(command)
  
@@ -344,6 +402,8 @@ class Controller(object):
         if len(self.__undo_stack) == 0:
             self.__view.set_undo_button_sensitivity(False)
         self.__view.set_redo_button_sensitivity(True)
+        
+        self.__view.update_undo_and_redo_buttons_tooltips()
 
     ''' 'Redo' use case. '''
     def redo_use_case(self):
@@ -359,6 +419,8 @@ class Controller(object):
         if len(self.__redo_stack) == 0:
             self.__view.set_redo_button_sensitivity(False)
         self.__view.set_undo_button_sensitivity(True)
+        
+        self.__view.update_undo_and_redo_buttons_tooltips()
 
     ''' 'Generate excel file' use case. '''
     def generate_excel_file_use_case(self):
@@ -384,24 +446,26 @@ class Controller(object):
     ''' 'Flip sample image' use case. '''
     def flip_sample_image_use_case(self, sample_id):
 
-        # Prepare the FlipSampleImage command
+        # Prepare the FlipSampleImageCommand
         command = commands.FlipSampleImageCommand(self)
+        command.set_string(self.__strings.FLIP_SAMPLE_IMAGE_COMMAND_STRING)
 
         self.flip_sample_image(sample_id)
 
-        # Add FlipSampleImage command to the stack
+        # Add FlipSampleImageCommand to the stack
         command.set_data((sample_id))
         self.__add_command(command)
 
     ''' 'Invert sample image' use case. '''
     def invert_sample_image_use_case(self, sample_id):
         
-        # Prepare the InvertSampleImage command
+        # Prepare the InvertSampleImageCommand
         command = commands.InvertSampleImageCommand(self)
+        command.set_string(self.__strings.INVERT_SAMPLE_IMAGE_COMMAND_STRINGA)
 
         self.invert_sample_image(sample_id)
 
-        # Add InvertSampleImage command to the stack
+        # Add InvertSampleImageCommand to the stack
         command.set_data(sample_id)
         self.__add_command(command)
         
@@ -416,12 +480,112 @@ class Controller(object):
     ''' 'Set head color' use case. '''    
     def set_head_color_use_case(self, head_color):       
         CanvasModel.get_instance().set_head_color(head_color)
+     
+    ''' 'Create DelimiterPoint' use case.
+    def create_delimiter_point_use_case(self, creation_method, coordinates):
+    
+        # Prepare the CreateDelimiterPointCommand command
+        command = commands.CreateDelimiterPointCommand(self)
+    
+        # Create DelimiterPoint
+        delimiter_point = self.create_delimiter_point(
+            self.__active_sample_id, creation_method, coordinates)
         
+        # Add CreateDelimiterPointCommand to the stack
+        command.set_data(
+            (self.__active_sample_id, 
+             delimiter_point.get_id(),
+             delimiter_point.get_contour_id()
+            )
+        )
+        self.__add_command(command)
+        
+        return delimiter_point
+    '''
+    
+    ''' 'Move DelimiterPoints' use case. '''
+    def move_delimiter_points_use_case(self, delimiter_point_selection):
+   
+        # The DelimiterPoints have been already moved. This method creates and 
+        # adds the command to the stack so it can be undone/redone.
+   
+        # Prepare the CreateDelimiterPointCommand command
+        command = commands.MoveDelimiterPointsCommand(self)
+        commands.set_string(self.__strings.MOVE_DELIMITER_POINTS_COMMAND_STRING)
+        
+        # Set data
+        command.set_data(
+            (self.__active_sample_id,
+            copy.deepcopy(delimiter_point_selection),
+            self.get_sample_zoom_value(self.__active_sample_id))
+        )
+        # Add MoveDelimiterPointsCommand to the stack
+        self.__add_command(command)
+        
+    '''
+        Moves the given DelimiterPoints from the DelimiterPointSelection 
+        from its current position to their origin.
+    '''    
+    def move_delimiter_points_to_origin(self, delimiter_point_selection, scale_ratio):
 
+        # Get scale_ratio to scale DelimiterPoints coordinates if needed
+        current_scale_ratio = self.get_sample_zoom_value(self.__active_sample_id)
+        scale_flag = (scale_ratio != current_scale_ratio)
+        if scale_flag:
+            new_scale_ratio = current_scale_ratio / scale_ratio
 
+        for (_, selected_delimiter_point) in delimiter_point_selection.get_dict().items():
+
+            # Get DelimiterPoint
+            delimiter_point = CanvasModel.get_instance().get_delimiter_point(
+                selected_delimiter_point.get_id(),
+                selected_delimiter_point.get_type(),
+                selected_delimiter_point.get_canvas_contour_id()
+            )
+            
+            # Current coordinates will be the new origin ones
+            new_origin = delimiter_point.get_coordinates()
+            
+            
+            # Set origin as new coordinates
+            origin = delimiter_point_selection.get_dict()[delimiter_point.get_id()].get_origin()
+            if scale_flag:
+                origin = utils.scale_point(origin, new_scale_ratio)          
+            delimiter_point.set_coordinates(origin)
+            
+            # Set new origin 
+            delimiter_point_selection.get_dict()[delimiter_point.get_id()].\
+                set_origin(new_origin)
+        
+        # Update Canvas
+        self.__view.get_main_window().get_canvas().update()
+        
+        return current_scale_ratio
+        
+    
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 #                                   Methods                                   # 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+    
+    ''' Returns the string that will be used for the Undo Button tooltip. '''
+    def get_undo_button_tooltip(self):
+    
+        if len(self.__undo_stack) == 0:
+            string = self.__strings.LAST_ACTION_LABEL
+        else:
+            string = self.__undo_stack[-1].get_string()
+        
+        return self.__strings.UNDO_TOOLBAR_BUTTON_TOOLTIP.format(string) 
+        
+    ''' Returns the string that will be used for the Redo Button tooltip. '''
+    def get_redo_button_tooltip(self):
+    
+        if len(self.__redo_stack) == 0:
+            string = self.__strings.LAST_ACTION_LABEL
+        else:
+            string = self.__redo_stack[-1].get_string()
+        
+        return self.__strings.REDO_TOOLBAR_BUTTON_TOOLTIP.format(string)     
 
     ''' 
         Removes the tail of the comet with given ID that belongs to the sample
@@ -458,7 +622,7 @@ class Controller(object):
                                  get_head_contour_dict()
 
         comet_is_valid = False
-        # If there are no Comet contours, with a closed Head contour
+        # If there are no Tail contours, with a closed Head contour
         # is enough
         if len(tail_contour_dict) == 0:
 
@@ -474,11 +638,10 @@ class Controller(object):
    
         else:
 
-            # If there is a Comet contour, both Comet and Head contours
+            # If there is a Tail contour, both Tail and Head contours
             # must be closed, and also touching themselves
             if len(tail_contour_dict) == 1:
-
-                
+            
                 for (_, tail_contour) in tail_contour_dict.items():
 
                     if tail_contour.get_closed():
@@ -488,7 +651,7 @@ class Controller(object):
                             comet_is_valid = (
                                 head_contour.get_closed() and 
                                 contours_are_nested(
-                                    tail_contour, head_contour))
+                                    head_contour, tail_contour,))
                 
 
         self.__view.get_main_window().get_selection_window().\
@@ -521,6 +684,7 @@ class Controller(object):
 
             # Prepare the AnalyzeSamples command
             command = commands.AnalyzeSamplesCommand(self)
+            command.set_string(self.__strings.ANALYZE_SAMPLES_COMMAND_STRING)
 
             samples_comet_lists = []
             i = 0
@@ -851,7 +1015,8 @@ class Controller(object):
             utils.scale_contour(tail_contour, scale_value)
         )
                 
-        self.__view.get_main_window().get_canvas().update()        
+        self.__view.get_main_window().get_canvas().update()
+        self.__view.get_main_window().get_selection_window().update()
  
     '''
         Replaces the comet list of the given samples with the given comet
@@ -906,6 +1071,7 @@ class Controller(object):
         self.__redo_stack.clear()
         self.__view.set_undo_button_sensitivity(False)
         self.__view.set_redo_button_sensitivity(False)
+        self.__update_undo_and_redo_buttons_tooltips()
 
     ''' Adds a command to the undo stack. '''
     def __add_command(self, command):
@@ -916,9 +1082,15 @@ class Controller(object):
         self.__redo_stack.clear()
         # Set buttons sensitivity
         self.__view.set_undo_button_sensitivity(True)
-        self.__view.set_redo_button_sensitivity(False)       
+        self.__view.set_redo_button_sensitivity(False)
+        # Update tooltips
+        self.__update_undo_and_redo_buttons_tooltips()
         # Update -> there are unsaved changes
         self.__update(True)
+        
+    ''' Updates Undo and Redo Buttons tooltips. '''    
+    def __update_undo_and_redo_buttons_tooltips(self):
+        self.__view.update_undo_and_redo_buttons_tooltips()
 
     ''' Updates the state and the main application window's title. '''
     def __update(self, value):
@@ -974,6 +1146,7 @@ class Controller(object):
 
         # Prepare command
         command = commands.AddSamplesCommand(self)
+        command.set_string(self.__strings.ADD_SAMPLES_COMMAND_STRING)
  
         # Add samples
         added_samples_ids = []
@@ -1048,6 +1221,7 @@ class Controller(object):
     ''' Updates the comet that was being edited contours. '''
     def save_comet_being_edited_changes(self):
     
+        print(CanvasModel.get_instance().get_comet_being_edited_has_changed())
         # Only update contours if they are different from the original
         if CanvasModel.get_instance().get_comet_being_edited_has_changed():
         
@@ -1090,8 +1264,8 @@ class Controller(object):
                         [p.get_coordinates() for p in canvas_contour.get_delimiter_point_list()]
                     )    
                 
-                # Edit comet contours
-                self.edit_comet_contours_use_case(
+                # Update comet contours
+                self.update_comet_contours_use_case(
                     self.__active_sample_id,
                     comet_id,
                     tail_contour,
@@ -1099,7 +1273,8 @@ class Controller(object):
                 )
             
         # No editing mode anymore
-        self.no_comet_being_edited_anymore()
+        self.quit_comet_being_edited()
+        self.__view.get_main_window().get_canvas().update()
 
     ''' Updates the Comet contours with given contours. '''
     def update_comet_contours(self, sample_id, comet_id, tail_contour, head_contour):
@@ -1127,12 +1302,7 @@ class Controller(object):
     def set_comet_being_edited_has_changed(self, comet_being_edited_has_changed):
         CanvasModel.get_instance().\
             set_comet_being_edited_has_changed(comet_being_edited_has_changed)
-
-    def get_sample_image(self, sample_id):
-        return self.__model.get_sample(sample_id).get_image()
         
-
-
     ''' Returns sample's tail contour dictionary with given ID. '''
     def get_sample_tail_contour_dict(self, sample_id=None):
     
@@ -1222,7 +1392,7 @@ class Controller(object):
         self.scale_sample_comet_contours(sample_id, requested_scale_ratio)
         
         # Scale 'Free Editing' and 'Comet being edited' CanvasContours
-        self.scale_sample_delimiter_points(sample_id, requested_scale_ratio)
+        self.scale_sample_canvas_contours(sample_id, requested_scale_ratio)
        
     ''' 
         Scales all Comet contours of Sample with given ID and creates
@@ -1262,28 +1432,31 @@ class Controller(object):
             comet_view_list)
         
     ''' Scales all DelimiterPoints of Sample with given ID. '''
-    def scale_sample_delimiter_points(self, sample_id, requested_scale_ratio):
+    def scale_sample_canvas_contours(self, sample_id, requested_scale_ratio):
 
         current_scale_ratio = self.get_sample_zoom_value(sample_id)
         final_scale_ratio = requested_scale_ratio / current_scale_ratio
         sample = self.__model.get_sample(sample_id)
                                 
-        # Scale 'Free editing' DelimiterPoints 
-        for (_, contour) in sample.get_tail_contour_dict().items():
-            utils.scale_delimiter_point_list(
-                contour.get_delimiter_point_list(), final_scale_ratio)
-        for (_, contour) in sample.get_head_contour_dict().items():
-            utils.scale_delimiter_point_list(
-                contour.get_delimiter_point_list(), final_scale_ratio)
+        # Scale 'Free editing' CanvasContours 
+        utils.scale_canvas_contour_dict(
+            sample.get_tail_contour_dict(),
+            final_scale_ratio
+        )
+        utils.scale_canvas_contour_dict(
+            sample.get_head_contour_dict(),
+            final_scale_ratio
+        )
+        # Scale 'Comet being edited' CanvasContours
+        utils.scale_canvas_contour_dict(
+            sample.get_comet_being_edited_tail_contour_dict(),
+            final_scale_ratio
+        )
+        utils.scale_canvas_contour_dict(
+            sample.get_comet_being_edited_head_contour_dict(),
+            final_scale_ratio
+        )
 
-        # Scale 'Comet being edited' DelimiterPoints
-        for (_, contour) in sample.get_comet_being_edited_tail_contour_dict().items():
-            utils.scale_delimiter_point_list(
-                contour.get_delimiter_point_list(), final_scale_ratio)
-        for (_, contour) in sample.get_comet_being_edited_head_contour_dict().items():
-            utils.scale_delimiter_point_list(
-                contour.get_delimiter_point_list(), final_scale_ratio)
-    
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 #                               Canvas Methods                                #
@@ -1370,8 +1543,7 @@ class Controller(object):
     def on_add_comet(self, tail_contour, head_contour):
 
         # Contours are parsed to ratio 1.
-        scale_ratio = 1. / self.get_sample_zoom_model(self.__active_sample_id)[
-                               self.get_sample_zoom_index(self.__active_sample_id)]
+        scale_ratio = 1. / self.get_sample_zoom_value(self.__active_sample_id)
 
         # [1] Build Tail contour
         if tail_contour is not None:
@@ -1383,7 +1555,6 @@ class Controller(object):
                                utils.list_to_contour(coordinates_list),
                                scale_ratio
                            )
-
 
         # [2] Build Head contour                
         # Parse to opencv contour
@@ -1410,56 +1581,65 @@ class Controller(object):
         # Update View
         self.__view.get_main_window().get_canvas().update()
         self.__view.get_main_window().get_selection_window().update()
-
-                
+        
+    ''' 
+        Returns the Comet's number of Comet with given ID of Sample with given ID.
+    '''
+    def get_comet_number(self, sample_id, comet_id):
+        return self.__model.get_comet_number(sample_id, comet_id)
+  
     '''
         Prepares the Canvas configuration so the user can edit an existent
         Comet manually.
     '''            
-    def prepare_comet_for_editing(self, sample_id, comet_id, tail_contour=None, head_contour=None):
+    def start_comet_being_edited(self, sample_id, comet_id, tail_canvas_contour_dict=None, head_canvas_contour_dict=None):
 
-        # 'Save' button active
-        self.__view.get_main_window().get_selection_window().get_save_button()\
-            .set_sensitive(True)
-        # Set Sample comet_being_edited_id
-        self.__model.get_sample(sample_id).set_comet_being_edited_id(comet_id)
-
-        if tail_contour is None and head_contour is None:
-
-            sample_parameters = self.__view.get_view_store().get_sample_parameters(sample_id)
-
-            for comet_view in sample_parameters.get_comet_view_list():
-                if comet_view.get_id() == comet_id:
-                    tail_contour = comet_view.get_scaled_tail_contour()
-                    head_contour = comet_view.get_scaled_head_contour()
-        
-        else:
-
-            zoom_value = self.get_sample_zoom_value(sample_id)
-
-            if tail_contour is not None:
-                tail_contour = utils.list_to_contour(utils.scale_contour(
-                    utils.contour_to_list(tail_contour), scale_ratio))
-            head_contour = utils.list_to_contour(utils.scale_contour(
-                utils.contour_to_list(head_contour), scale_ratio))
-
-        self.__view.get_main_window().get_canvas().get_editing_button().set_active(True)
-        self.__view.get_main_window().get_canvas().get_editing_selection_button().set_active(True)
-
+        # Preamble
         if not BuildingTailContourState.get_instance():
             BuildingTailContourState(self)
         if not BuildingHeadContourState.get_instance():
             BuildingHeadContourState(self)
-            
-        CanvasModel.get_instance().set_tail_contour_dict(
-            self.__model.get_sample(sample_id).get_comet_being_edited_tail_contour_dict()
-        )
-        CanvasModel.get_instance().set_head_contour_dict(
-            self.__model.get_sample(sample_id).get_comet_being_edited_head_contour_dict()
-        )
 
-        CanvasModel.get_instance().prepare_comet_for_editing(tail_contour, head_contour)
-    
+        # Set Sample comet_being_edited_id
+        self.__model.get_sample(sample_id).set_comet_being_edited_id(comet_id)
+
+        # If no CanvasContours dictionaries are provided, use OpenCV contours instead
+        if tail_canvas_contour_dict is None and head_canvas_contour_dict is None:
+
+            sample_parameters = self.__view.get_view_store().get_sample_parameters(sample_id)
+            # Retrieve already scaled OpenCV contours
+            for comet_view in sample_parameters.get_comet_view_list():
+                if comet_view.get_id() == comet_id:
+                    tail_contour = comet_view.get_scaled_tail_contour()
+                    head_contour = comet_view.get_scaled_head_contour()
+                    
+            # Load the OpenCV contours into CanvasModel        
+            CanvasModel.get_instance().prepare_comet_for_editing(tail_contour, head_contour)        
+         
+        # If CanvasContours dictionaries are provided, scale and use them directly
+        else:
+
+            tail_canvas_contour_dict = copy.deepcopy(tail_canvas_contour_dict)
+            head_canvas_contour_dict = copy.deepcopy(head_canvas_contour_dict)
+
+            current_zoom_value = self.get_sample_zoom_value(sample_id)         
+            # Scale CanvasContours 
+            utils.scale_canvas_contour_dict(tail_canvas_contour_dict, current_zoom_value)
+            utils.scale_canvas_contour_dict(head_canvas_contour_dict, current_zoom_value)
+                     
+            CanvasModel.get_instance().set_tail_contour_dict(
+                tail_canvas_contour_dict)
+            CanvasModel.get_instance().set_head_contour_dict(
+                head_canvas_contour_dict)
+          
+        # Activate Editing state with 'Edit contours' mode.   
+        self.__view.get_main_window().get_canvas().get_editing_button().set_active(True)
+        self.__view.get_main_window().get_canvas().get_editing_selection_button().set_active(True)
+            
+        # Make SelectionWindow 'Save' button active
+        self.__view.get_main_window().get_selection_window().get_save_button()\
+            .set_sensitive(True)
+                   
     ''' Returns the Sample zoom value with given ID. '''
     def get_sample_zoom_value(self, sample_id):  
     
@@ -1470,14 +1650,16 @@ class Controller(object):
     def __get_sample_selected_comet_view(self, sample_id, comet_id):
         return self.__view.get_view_store().get_comet_view(sample_id, comet_id)            
             
-    ''' Behaviour when a comet is no longer being edited by the user. '''        
-    def no_comet_being_edited_anymore(self):
+    ''' Behaviour for a Comet to stop being edited. '''        
+    def quit_comet_being_edited(self):
     
+        # Start SelectionState
         self.__view.get_main_window().get_canvas().get_selection_button().set_active(True)
+        
         sample = self.__model.get_sample(self.__active_sample_id)
-        sample.set_comet_being_edited_id(None)          
-  
-        # Set 'free editing' contours
+        # Set to None the Sample's Comet ID being edited
+        sample.set_comet_being_edited_id(None)       
+        # Activate on CanvasModel Sample's 'free editing' contours dicts
         CanvasModel.get_instance().set_tail_contour_dict(
             sample.get_tail_contour_dict())
         CanvasModel.get_instance().set_head_contour_dict(

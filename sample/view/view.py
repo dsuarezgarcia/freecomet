@@ -405,11 +405,11 @@ class View(Observer):
         toolbar.get_undo_button().set_label(
             strings.UNDO_TOOLBAR_BUTTON_LABEL)
         toolbar.get_undo_button().set_tooltip_text(
-            strings.UNDO_TOOLBAR_BUTTON_TOOLTIP)
+            self.__controller.get_undo_button_tooltip())
         toolbar.get_redo_button().set_label(
             strings.REDO_TOOLBAR_BUTTON_LABEL)
         toolbar.get_redo_button().set_tooltip_text(
-            strings.REDO_TOOLBAR_BUTTON_TOOLTIP)
+            self.__controller.get_redo_button_tooltip())
         toolbar.get_fullscreen_button().set_label(
             strings.FULLSCREEN_TOOLBAR_BUTTON_LABEL)
         toolbar.get_fullscreen_button().set_tooltip_text(
@@ -568,10 +568,14 @@ class View(Observer):
         selection_window.get_save_button().set_label(
             strings.SAVE_BUTTON_LABEL)
 
-        if self.get_active_sample_parameters() is not None:
-            comet_number = self.get_active_sample_comet_number(
-                            self.get_active_sample_parameters().\
-                                get_comet_being_edited_id())
+        if self.__controller.get_active_sample_id() is not None:
+        
+            comet_number = self.__controller.get_comet_number(
+                               self.__controller.get_active_sample_id(),
+                               self.__controller.get_sample_comet_being_edited_id(
+                                   self.__controller.get_active_sample_id()
+                               )
+                           )    
 
             selection_window.get_editing_label().set_label(
                 strings.SELECTION_WINDOW_COMET_BEING_EDITED_LABEL.format(
@@ -1371,12 +1375,14 @@ class View(Observer):
     ''' SelectionWindow 'Edit contour' Button 'clicked' callback. '''
     def __on_edit_comet_contours_button_clicked(self, button):
 
-        self.__controller.prepare_comet_for_editing(
+        self.__controller.edit_comet_contours_use_case(
             self.__controller.get_active_sample_id(),
             self.__controller.get_active_sample_selected_comet_id()
         )
-        self.__main_window.get_selection_window().\
-            transition_to_comet_being_edited()
+
+    ''' SelectionWindow 'Cancel' Button 'clicked' callback. '''
+    def __on_editing_comet_cancel_button_clicked(self, button):  
+        self.__controller.cancel_edit_comet_contours_use_case()    
 
     ''' SelectionWindow 'See parameters' Button 'clicked' callback. '''
     def __on_see_parameters_button_clicked(self, button): 
@@ -1386,14 +1392,9 @@ class View(Observer):
             self.__controller.get_active_sample_selected_comet_id()
         )
 
-    ''' SelectionWindow 'Cancel' Button 'clicked' callback. '''
-    def __on_editing_comet_cancel_button_clicked(self, button):
-        self.__controller.no_comet_being_edited_anymore()
-
     ''' SelectionWindow 'Save' Button 'clicked' callback. '''
     def __on_editing_comet_save_button_clicked(self, button):
         self.__controller.save_comet_being_edited_changes()
-        self.__main_window.get_canvas().update()
 
 
     #                                                           #
@@ -1665,6 +1666,14 @@ class View(Observer):
 
         if self.__controller.get_active_sample_id() is not None:
             return self.__view_store.get_store()[self.__controller.get_active_sample_id()]
+            
+    ''' Updates Undo and Redo Buttons tooltips. '''        
+    def update_undo_and_redo_buttons_tooltips(self):  
+
+        self.__main_window.get_toolbar().get_undo_button().set_tooltip_text(
+            self.__controller.get_undo_button_tooltip())
+        self.__main_window.get_toolbar().get_redo_button().set_tooltip_text(
+            self.__controller.get_redo_button_tooltip())
 
     ''' Sets the info label text. '''
     def __set_info_label_text(self, n_samples):

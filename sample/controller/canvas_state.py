@@ -95,10 +95,6 @@ class CanvasState(State):
     def get_editing(self, *args):
         pass 
 
-    ''' Restart behaviour. '''
-    def reset_parameters(self, *args):
-        pass
-
     ''' Update buttons sensitivity behaviour. '''
     def update_buttons_sensitivity(self, *args):
         pass
@@ -460,7 +456,7 @@ class CanvasEditingState(CanvasState):
 
         self._context.get_brush().set_color(
             self._context.get_tail_color())
-        # Draw Comet delimiter points           
+        # Draw Tail delimiter points           
         for (_, tail_contour) in CanvasModel.get_instance().get_tail_contour_dict().items():
             for delimiter_point in tail_contour.get_delimiter_point_list():
                 self.draw_delimiter_point(cairo_context, delimiter_point)              
@@ -621,7 +617,10 @@ class EditingSelectionState(ActionState):
                     CanvasModel.get_instance().get_delimiter_point_selection().get_dict().clear()
                     CanvasModel.get_instance().get_delimiter_point_selection().get_dict()[
                         delimiter_point.get_id()] = SelectedDelimiterPoint(
-                        delimiter_point.get_id())                       
+                                                        delimiter_point.get_id(),
+                                                        delimiter_point.get_type(),
+                                                        delimiter_point.get_contour_id()
+                                                    )                       
 
         # Click wasn't on a DelimiterPoint          
         else:
@@ -660,6 +659,10 @@ class EditingSelectionState(ActionState):
 
             if CanvasModel.get_instance().get_delimiter_point_selection().get_moved():
 
+                # Call 'move delimiter points' use case.
+                self._context.move_delimiter_points_use_case(
+                    CanvasModel.get_instance().get_delimiter_point_selection())
+
                 if self._context.get_active_sample_comet_being_edited_id() is not None:
                     
                     self._context.update_save_button_sensitivity()
@@ -696,14 +699,12 @@ class EditingSelectionState(ActionState):
 # 	                               Methods                                    #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #  
 
-    def reset_parameters(self):
-        self.initialize()
-
+    ''' 'update buttons sensitivity' behaviour. '''
     def update_buttons_sensitivity(self):
         self._context.get_build_tail_contour_button().set_sensitive(
             False)
         self._context.get_build_head_contour_button().set_sensitive(
-            False)          
+            False)   
 
     ''' Toggles the selection of a given DelimiterPoint. '''  
     def toggle_delimiter_point_selection(self, delimiter_point):
@@ -711,7 +712,11 @@ class EditingSelectionState(ActionState):
         if delimiter_point.get_id() not in \
                        CanvasModel.get_instance().get_delimiter_point_selection().get_dict().keys():
             CanvasModel.get_instance().get_delimiter_point_selection().get_dict()[delimiter_point.\
-                get_id()] = SelectedDelimiterPoint(delimiter_point.get_id())
+                get_id()] = SelectedDelimiterPoint(
+                                 delimiter_point.get_id(),
+                                 delimiter_point.get_type(),
+                                 delimiter_point.get_contour_id()
+                            ) 
         else:
             del CanvasModel.get_instance().get_delimiter_point_selection().get_dict()[
                 delimiter_point.get_id()]
@@ -774,7 +779,10 @@ class EditingSelectionState(ActionState):
 
                 CanvasModel.get_instance().get_delimiter_point_selection().get_dict()[
                     delimiter_point.get_id()] = SelectedDelimiterPoint(
-                                                     delimiter_point.get_id())
+                                                    delimiter_point.get_id(),
+                                                    delimiter_point.get_type(),
+                                                    delimiter_point.get_contour_id()
+                                                ) 
 
     ''' Moves the selected DelimiterPoints. '''
     def move_selected_delimiter_points(self, mouse_coordinates):
@@ -1327,8 +1335,17 @@ class BuildingContourState(ActionState):
     ''' Behaviour when there is neither root point nor anchored point. '''
     def free_click_with_no_root(self, mouse_coordinates):
 
+        
         # Create a new DelimiterPoint
-        delimiter_point = self.BUILDER.create_delimiter_point(mouse_coordinates)            
+        '''
+        delimiter_point = self._context.create_delimiter_point_use_case(
+            self.BUILDER.create_delimiter_point,
+            mouse_coordinates)
+        '''    
+        delimiter_point = self.BUILDER.create_delimiter_point(
+                              mouse_coordinates
+                          )    
+            
         # New delimiter point is now the root
         CanvasModel.get_instance().set_root_delimiter_point(delimiter_point)
         
@@ -1338,7 +1355,7 @@ class BuildingContourState(ActionState):
 
         # Send signal to upper context
         self._context.on_add_comet(tail_contour, head_contour)
-        # Clear the Comet points that belong to the comet contour
+        # Clear the Tail points that belong to the comet contour
         if tail_contour is not None:
             del CanvasModel.get_instance().get_tail_contour_dict()\
                 [tail_contour.get_id()]
@@ -1429,13 +1446,13 @@ class BuildingHeadContourState(BuildingContourState):
                                      get_instance().get_tail_contour_dict().items()
                                      if contour.get_closed()]
 
-        # If the Head contour is nested to a closed Comet contour, both are
+        # If the Head contour is nested to a closed Tail contour, both are
         # used to build the comet.
         for tail_contour in closed_tail_contour_list:
 
-            comet_coordinates_list = [point.get_coordinates() for point in
+            tail_coordinates_list = [point.get_coordinates() for point in
                                       tail_contour.get_delimiter_point_list()]
-            cv2_tail_contour = utils.list_to_contour(comet_coordinates_list)
+            cv2_tail_contour = utils.list_to_contour(tail_coordinates_list)
                     
             is_inside = False
             index = 0
