@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 
 '''
-    The Canvas module.
+    The canvas module.
 '''
 
 # PyGObject imports
@@ -242,9 +242,7 @@ class Canvas(object):
             # Start path
             cairo_context.new_path()
 
-            sample_parameters = self.__view.get_active_sample_parameters()
             for comet_view in comet_view_list:
-
 
                 # Do not draw comet if it's currently being edited
                 if (self.__view.get_controller().get_active_sample_comet_being_edited_id() is not None and

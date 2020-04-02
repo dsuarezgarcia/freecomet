@@ -190,7 +190,8 @@ class Strings(object):
         self.EDIT_COMET_CONTOURS_COMMAND_STRING = _("'Comenzar Edición de Cometa'")
         self.CANCEL_EDIT_COMET_CONTOURS_COMMAND_STRING = _("'Cancelar Edición de Cometa'")
         self.UPDATE_COMET_CONTOURS_COMMAND_STRING = _("'Finalizar Edición de Cometa'")
-        self.MOVE_DELIMITER_POINTS_COMMAND_STRING = _("'Mover Punto/s Delimitador/es'")
+        self.CREATE_DELIMITER_POINT_COMMAND_STRING = _("'Añadir Punto Delimitador'")
+        self.MOVE_DELIMITER_POINTS_COMMAND_STRING = _("'Mover Puntos Delimitadores'")
         
 
     ''' Translates the strings to spanish. '''

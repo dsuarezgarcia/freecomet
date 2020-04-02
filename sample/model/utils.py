@@ -251,7 +251,7 @@ def scale_canvas_contour_dict(canvas_contour_dict, scale_ratio):
 
     for (_, canvas_contour) in canvas_contour_dict.items():
         scale_delimiter_point_list(
-            canvas_contour.get_delimiter_point_list(),
+            canvas_contour.get_delimiter_point_dict().values(),
             scale_ratio
         )
 def scale_delimiter_point_list(delimiter_point_list, scale_ratio):

@@ -146,11 +146,11 @@ class ActionState(CanvasState):
     def get_all_points(self):
 
         if CanvasEditingState.get_instance() is not None:
-
             return CanvasEditingState.get_instance().get_all_points()
 
     ''' Draws a DelimiterPoint. '''
     def draw_delimiter_point(self, cairo_context, delimiter_point):
+    
         CanvasEditingState.get_instance().draw_delimiter_point(
             cairo_context, delimiter_point)
 
@@ -420,13 +420,13 @@ class CanvasEditingState(CanvasState):
         # Draw tail contours edges
         for (_, tail_contour) in CanvasModel.get_instance().get_tail_contour_dict().items():
             self.__draw_edge_lines(
-                cairo_context, tail_contour.get_delimiter_point_list())
+                cairo_context, [p for (_, p) in tail_contour.get_delimiter_point_dict().items()])
 
         brush.set_color(self._context.get_head_color())
         # Draw head contour edges            
         for (_, head_contour) in CanvasModel.get_instance().get_head_contour_dict().items():
             self.__draw_edge_lines(
-                cairo_context, head_contour.get_delimiter_point_list())
+                cairo_context, [p for (_, p) in head_contour.get_delimiter_point_dict().items()])
 
     ''' 
         Draws the edge lines between the DelimiterPoints in the given list.
@@ -458,14 +458,14 @@ class CanvasEditingState(CanvasState):
             self._context.get_tail_color())
         # Draw Tail delimiter points           
         for (_, tail_contour) in CanvasModel.get_instance().get_tail_contour_dict().items():
-            for delimiter_point in tail_contour.get_delimiter_point_list():
+            for (_, delimiter_point) in tail_contour.get_delimiter_point_dict().items():
                 self.draw_delimiter_point(cairo_context, delimiter_point)              
 
         self._context.get_brush().set_color(
             self._context.get_head_color())
         # Draw Head delimiter points           
         for (_, head_contour) in CanvasModel.get_instance().get_head_contour_dict().items():
-            for delimiter_point in head_contour.get_delimiter_point_list():
+            for (_, delimiter_point) in head_contour.get_delimiter_point_dict().items():
                 self.draw_delimiter_point(cairo_context, delimiter_point) 
 
     ''' Draws a given DelimiterPoint. '''
@@ -969,18 +969,11 @@ class EditingSelectionState(ActionState):
 
     ''' Deletes the selected DelimiterPoints. '''
     def delete_selected_delimiter_points(self):
-
-        # Selected points IDs
-        selected_points_id_list = CanvasModel.get_instance().get_delimiter_point_selection().\
-                                      get_dict().keys() 
-
-        # Deletes the selected DelimiterPoints
-        CanvasEditingState.get_instance().delete_delimiter_points(
-            selected_points_id_list)
-
+    
+        # Delete selected DelimiterPoints
+        self._context.delete_delimiter_points([])
         # No selected points
         CanvasModel.get_instance().get_delimiter_point_selection().get_dict().clear()
-
 
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
@@ -1250,7 +1243,7 @@ class BuildingContourState(ActionState):
 
         # Connect points
         self.BUILDER.connect_points(
-           CanvasModel.get_instance().get_root_delimiter_point(), 
+            CanvasModel.get_instance().get_root_delimiter_point(), 
             CanvasModel.get_instance().get_anchored_delimiter_point()
         )
 
@@ -1271,8 +1264,8 @@ class BuildingContourState(ActionState):
         # Create a new DelimiterPoint on anchored DelimiterPoint
         # coordinates and connect with the root
         delimiter_point = self.BUILDER.create_and_connect_points(
-            CanvasModel.get_instance().get_anchored_delimiter_point().get_coordinates(),
-            CanvasModel.get_instance().get_root_delimiter_point()
+            CanvasModel.get_instance().get_root_delimiter_point(),
+            CanvasModel.get_instance().get_anchored_delimiter_point().get_coordinates()           
         )
 
         # Make roommates
@@ -1325,31 +1318,28 @@ class BuildingContourState(ActionState):
     ''' Behaviour when a point is root and there is no anchored points. '''
     def free_click_with_root(self, mouse_coordinates):
 
-        # Create a new DelimiterPoint on mouse location and connect 
-        # with the root
-        delimiter_point = self.BUILDER.create_and_connect_points(
-            mouse_coordinates,
-            CanvasModel.get_instance().get_root_delimiter_point()
-        )
-
+        # Create a new DelimiterPoint on given coordinates and connect it
+        # with the root        
+        delimiter_point = self._context.create_and_connect_delimiter_point_use_case(
+            self.BUILDER.create_and_connect_points, 
+            CanvasModel.get_instance().get_root_delimiter_point(),
+            mouse_coordinates
+        )    
+        
+        # New created DelimiterPoint is now the root
+        CanvasModel.get_instance().set_root_delimiter_point(delimiter_point)
+        
     ''' Behaviour when there is neither root point nor anchored point. '''
     def free_click_with_no_root(self, mouse_coordinates):
-
-        
+      
         # Create a new DelimiterPoint
-        '''
         delimiter_point = self._context.create_delimiter_point_use_case(
             self.BUILDER.create_delimiter_point,
             mouse_coordinates)
-        '''    
-        delimiter_point = self.BUILDER.create_delimiter_point(
-                              mouse_coordinates
-                          )    
-            
+  
         # New delimiter point is now the root
         CanvasModel.get_instance().set_root_delimiter_point(delimiter_point)
-        
-        
+             
     ''' Behaviour when a comet has been successfully built. '''
     def on_comet_built(self, head_contour, tail_contour=None):
 
@@ -1368,11 +1358,12 @@ class BuildingContourState(ActionState):
     ''' Behaviour by default when a contour is closed. '''
     def on_closed_contour_created(self, contour, valid_points_id_list):
                 
-        valid_points = [point for point in contour.get_delimiter_point_list()
-                        if point.get_id() in valid_points_id_list]
+        valid_points = [p for p in contour.get_delimiter_point_dict().values()
+                        if p.get_id() in valid_points_id_list]
 
         # Contour has now only the DelimiterPoints that close the contour
-        contour.set_delimiter_point_list(valid_points)
+        contour.set_delimiter_point_dict(
+            {p.get_id():p for p in valid_points})
 
         # The rest of points are removed from the neighbors pointers
         for delimiter_point in valid_points:
@@ -1450,8 +1441,8 @@ class BuildingHeadContourState(BuildingContourState):
         # used to build the comet.
         for tail_contour in closed_tail_contour_list:
 
-            tail_coordinates_list = [point.get_coordinates() for point in
-                                      tail_contour.get_delimiter_point_list()]
+            tail_coordinates_list = [p.get_coordinates() for p in
+                                     tail_contour.get_delimiter_point_dict().values()]
             cv2_tail_contour = utils.list_to_contour(tail_coordinates_list)
                     
             is_inside = False
@@ -1476,20 +1467,20 @@ class BuildingHeadContourState(BuildingContourState):
 #                            Auxiliary Methods                                #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ # 
 
-''' Returns the DelimiterPoint identifier. '''
+''' Returns the DelimiterPoint with given ID. '''
 def get_delimiter_point(delimiter_point_id):
 
     tail_contour_dict = CanvasModel.get_instance().get_tail_contour_dict()
     head_contour_dict = CanvasModel.get_instance().get_head_contour_dict()
 
-    for (_, contour) in tail_contour_dict.items():
-        for delimiter_point in contour.get_delimiter_point_list():
-            if delimiter_point.get_id() == delimiter_point_id:
+    for canvas_contour in tail_contour_dict.values():
+        for (id, delimiter_point) in canvas_contour.get_delimiter_point_dict().items():
+            if id == delimiter_point_id:
                 return delimiter_point
 
-    for (_, contour) in head_contour_dict.items():
-        for delimiter_point in contour.get_delimiter_point_list():
-            if delimiter_point.get_id() == delimiter_point_id:
+    for canvas_contour in head_contour_dict.values():
+        for (id, delimiter_point) in canvas_contour.get_delimiter_point_dict().items():
+            if id == delimiter_point_id:
                 return delimiter_point
 
 ''' Makes two DelimiterPoints 'roommates'. '''

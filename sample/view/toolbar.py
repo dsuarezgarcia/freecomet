@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 
 '''
-    The ToolBar module.
+    The toolbar module.
 '''
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #

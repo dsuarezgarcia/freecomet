@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 
 '''
-    The MenuBar module.
+    The menubar module.
 '''
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #

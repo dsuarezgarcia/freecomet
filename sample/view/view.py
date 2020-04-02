@@ -4,12 +4,6 @@
     The view module.
 '''
 
-# General imports
-import ntpath
-import copy
-import time
-import os
-
 # PyGObject imports
 import gi
 gi.require_version('Gtk', '3.0')
@@ -791,19 +785,19 @@ class View(Observer):
             # If a row has been right-clicked            
             if path is not None: 
                 self.show_context_menu1(event)
-            # If background has been right-clicked
+            # If the background has been right-clicked
             else:
                 self.show_context_menu2(event)
 
     ''' SamplesView Treeview row 'key-press-event' signal callback. '''
     def __on_samples_view_treeview_row_key_press_event(self, treeview, event):
 
-        keyval = event.keyval
-        keyval_name = Gdk.keyval_name(keyval)
-        # Supr -> delete row
+        keyval_name = Gdk.keyval_name(event.keyval)
+        # Supr -> delete selected row
         if len(treeview.get_model()) > 0 and keyval_name == "Delete":
             model, treeiter = treeview.get_selection().get_selected()
             if treeiter is not None:
+                # Delete Sample by ID
                 self.__controller.delete_sample_use_case(model[treeiter][0])
 
     ''' SamplesView Treeview row 'query-tooltip' signal callback. '''
@@ -816,9 +810,10 @@ class View(Observer):
             return False
 
         path, column, _, _ = fullpath
-        # Row sample's name is displayed in the tooltip
+        # Row Sample's name is displayed in the tooltip
         tooltip.set_text(treeview.get_model()[path][1] )
         treeview.set_tooltip_cell(tooltip, path, column, None)
+        
         return True
 
     ''' SamplesView Treeview row 'edited' signall callback. '''
@@ -885,13 +880,11 @@ class View(Observer):
 
     ''' Canvas 'button-press-event' callback. '''
     def __on_canvas_button_press_event(self, drawing_area, event):
-
         if self.__controller.get_active_sample_id() is not None:
             self.__main_window.get_canvas().on_mouse_click(event)
 
     ''' Canvas 'button-release-event' callback. '''
-    def __on_canvas_button_release_event(self, drawing_area, event):
-      
+    def __on_canvas_button_release_event(self, drawing_area, event):    
         if self.__controller.get_active_sample_id() is not None: 
             self.__main_window.get_canvas().on_mouse_release(event)
 
@@ -961,14 +954,13 @@ class View(Observer):
         # Show AnalyzeSamplesWindow window
         self.__analyze_samples_window.show() 
        
-    ''' Returns Sample ID at given pos. '''
-
     ''' 'Rename' Treeview Context Menu1 tab 'activate' signal callback. '''
     def __on_context_menu1_rename(self, menu_item):
         self.__main_window.get_samples_view().prepare_row_for_rename()
         
     ''' 'Delete' Treeview Context Menu1 tab 'activate' signal callback. '''
     def __on_context_menu1_delete(self, menu_item):
+    
         row = self.__main_window.get_samples_view().get_selected_sample_row()
         self.__controller.delete_sample_use_case(
             self.__main_window.get_samples_view().get_sample_id(row))
@@ -1073,13 +1065,15 @@ class View(Observer):
 
     ''' ZoomTool Combobox Entry 'focus-in-event' callback. '''
     def __on_zoom_tool_entry_focus_in_event(self, entry, event):
+    
         entry.set_text(entry.get_text()[:-1])
         zoom_tool = self.__main_window.get_zoom_tool() 
         entry.set_max_length(ZoomTool.MAX_LENGTH)
         zoom_tool.set_entry_icon(ZoomTool.CLEAR_ICON)
 
     ''' ZoomTool Combobox Entry 'focus-out-event' callback. '''
-    def __on_zoom_tool_entry_focus_out_event(self, entry, event):   
+    def __on_zoom_tool_entry_focus_out_event(self, entry, event):
+    
         zoom_tool = self.__main_window.get_zoom_tool()        
         entry.set_max_length(ZoomTool.UNLIMITED)
         zoom_tool.set_entry_icon(ZoomTool.NO_ICON)
@@ -1088,12 +1082,14 @@ class View(Observer):
 
     ''' ZoomTool Combobox Entry 'icon-press' callback. '''
     def __on_zoom_tool_entry_icon_press(self, entry, icon_pos, event):
+    
         entry.set_text("")
         zoom_tool = self.__main_window.get_zoom_tool()
         zoom_tool.set_entry_icon(ZoomTool.NO_ICON)
         
     ''' Canvas 'Analyze' Button 'clicked' callback. '''
-    def __on_canvas_analyze_button_clicked(self, button):        
+    def __on_canvas_analyze_button_clicked(self, button):
+    
         model = self.__main_window.get_samples_view().get_model()
         self.__analyze_samples_window.get_samples_view().clear_model()
         self.__analyze_samples_window.get_samples_view().set_model(model)
@@ -1102,6 +1098,7 @@ class View(Observer):
 
     ''' Canvas 'Analyze all' Button 'clicked' callback. '''
     def __on_canvas_analyze_all_button_clicked(self, button):
+    
         model = self.__main_window.get_samples_view().get_model()
         samples_id_list = [sample[0] for sample in model]
         self.__controller.analyze_samples_use_case(samples_id_list)
@@ -1124,59 +1121,35 @@ class View(Observer):
 
     ''' Canvas 'Selection Mode' Button 'clicked' callback. '''
     def __on_canvas_selection_button_clicked(self, button):
-
         if button.get_active():
-        
-            self.__main_window.get_canvas().hide_editing_buttons()
             self.__controller.canvas_transition_to_selection_state()
-            self.__main_window.get_canvas().update()
-            self.__main_window.get_selection_window().update()
 
     ''' Canvas 'Editing Mode' Button 'clicked' callback. '''
     def __on_canvas_editing_button_clicked(self, button):
-
-        if button.get_active():
-        
-            self.__main_window.get_canvas().show_editing_buttons()
+        if button.get_active():         
             self.__controller.canvas_transition_to_editing_state()
-            self.__main_window.get_canvas().update()
-            self.__main_window.get_selection_window().update()
-
+            
     ''' Canvas 'Editing Selection' Button 'clicked' callback. '''
     def __on_canvas_editing_selection_button_clicked(self, button):
-
-        if button.get_active():
-        
+        if button.get_active():       
             self.__controller.canvas_transition_to_editing_selection_state()
-            self.__main_window.get_canvas().set_build_contour_buttons_sensitivity(False)
-            self.__main_window.get_canvas().update()
 
     ''' Canvas 'Building' Button 'clicked' callback. '''
-    def __on_canvas_editing_building_button_clicked(self, button):
-        
-        if button.get_active():
-        
+    def __on_canvas_editing_building_button_clicked(self, button):      
+        if button.get_active():     
             self.__controller.canvas_transition_to_editing_building_state()
-            self.__main_window.get_canvas().set_build_contour_buttons_sensitivity(True)
-            self.__main_window.get_canvas().update()
 
     ''' Canvas 'Build comet contour' Button 'clicked' callback. '''
     def __on_canvas_build_tail_contour_button_clicked(self, button):
-
-        if button.get_active():
-        
+        if button.get_active():       
             self.__controller.canvas_transition_to_building_tail_contour_state()
-            self.__main_window.get_canvas().update()
-
+            
     ''' Canvas 'Build head contour' Button 'clicked' callback. '''
     def __on_canvas_build_head_contour_button_clicked(self, button):
-
-        if button.get_active():
-            
+        if button.get_active():           
             self.__controller.canvas_transition_to_building_head_contour_state()
-            self.__main_window.get_canvas().update()
 
-    ''' Set the canvas scrolls position. '''
+    ''' Set the Canvas scrolls position. '''
     def __on_canvas_size_allocate(self, drawing_area, allocation):
 
         if self.__controller.get_active_sample_id() is not None:
@@ -1184,11 +1157,11 @@ class View(Observer):
             sample_parameters = self.__view_store.get_store()[
                                     self.__controller.get_active_sample_id()]
 
-            # Get active sample scrolls position
-            x = sample_parameters.get_scroll_x_position()
-            y = sample_parameters.get_scroll_y_position()
             # Set scrolls position
-            self.__main_window.get_canvas().set_scroll_position(x, y)
+            self.__main_window.get_canvas().set_scroll_position(
+                sample_parameters.get_scroll_x_position(),
+                sample_parameters.get_scroll_y_position()
+            )
     
         self.__main_window.get_canvas().update()
 
@@ -1228,7 +1201,6 @@ class View(Observer):
             self.__dialog_comet_color_chooser)
 
         if response_id == DialogResponse.ACCEPT:
-
             self.__main_window.get_color_tool().set_tail_color(gdk_rgba)
 
         return True            
@@ -1241,7 +1213,6 @@ class View(Observer):
             self.__dialog_head_color_chooser)
 
         if response_id == DialogResponse.ACCEPT:
-
             self.__main_window.get_color_tool().set_head_color(gdk_rgba)
 
         return True
@@ -1252,6 +1223,7 @@ class View(Observer):
 
     ''' AnalyzeSamplesLoadingWindow 'Cancel' Button 'clicked' callback. '''
     def __on_analyze_samples_loading_window_cancel_button_clicked(self, button):
+    
         button.set_sensitive(False)
         self.__analyze_samples_loading_window.set_cancelled(True)
         self.__controller.stop_analyze_samples_thread()
@@ -1277,6 +1249,7 @@ class View(Observer):
 
     ''' AnalyzeSamplesWindow window 'delete-event' callback. '''
     def __on_analyze_samples_window_delete_event(self, window, event):
+    
         self.__analyze_samples_window.get_samples_view().clear_model()
         self.__analyze_samples_window.hide()
         return True
@@ -1346,6 +1319,7 @@ class View(Observer):
 
     ''' MainSettingsWindow 'Save' Button 'clicked' callback. '''
     def __on_settings_window_save_button_clicked(self, button):
+    
         self.__controller.set_algorithm_settings(
             self.__main_settings_window.get_algorithm_settings())        
         self.__main_settings_window.hide()
@@ -1638,15 +1612,6 @@ class View(Observer):
         # Update components configuration with active Sample parameters 
         self.__update_components_parameters()
 
-    ''' Clears the comet list of the sample with given ID. '''
-    def clear_comet_list(self, sample_id):
-
-        self.__view_store.get_store()[sample_id].\
-            get_comet_view_list().clear()
-        self.__view_store.get_store()[sample_id].\
-            _set_selected_comet_id(None)
-        self.__main_window.get_canvas().update()
-
     ''' Returns the active sample's comet view list. '''
     def get_active_sample_comet_view_list(self):
 
@@ -1660,12 +1625,6 @@ class View(Observer):
         if self.__controller.get_active_sample_id() is not None:
             return self.__view_store.get_comet_number(
                 self.__controller.get_active_sample_id(), comet_id)
-
-    ''' Returns the active sample SampleParameters object. '''
-    def get_active_sample_parameters(self):
-
-        if self.__controller.get_active_sample_id() is not None:
-            return self.__view_store.get_store()[self.__controller.get_active_sample_id()]
             
     ''' Updates Undo and Redo Buttons tooltips. '''        
     def update_undo_and_redo_buttons_tooltips(self):  

@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 
 '''
-    The Controller module.
+    The controller module.
 '''
 
 # General imports
@@ -9,7 +9,7 @@ import os
 import sys
 import copy
 import ntpath
-import itertools
+
 
 # PyGObject imports
 import gi
@@ -77,12 +77,11 @@ class Controller(object):
         # Canvas state
         self.__canvas_state = CanvasSelectionState(self)
 
+        # Start UI
         self.__view.connect(self)
         self.__view.set_application_window_title(
             self.__build_application_window_title())        
         self.__view.set_strings(strings)
-
-        # Start UI
         self.__view.start()
 
 
@@ -365,9 +364,12 @@ class Controller(object):
         (_, old_tail_contour, old_head_contour) = self.update_comet_contours(
             sample_id, comet_id, tail_contour, head_contour)
 
-        data = (comet_id, old_tail_contour, old_head_contour)
+        data = (sample_id, comet_id, old_tail_contour, old_head_contour,
+                copy.deepcopy(CanvasModel.get_instance().get_tail_contour_dict()),
+                copy.deepcopy(CanvasModel.get_instance().get_head_contour_dict())
+               )
         # Add UpdateCometContoursCommand to the undo stack
-        command.set_data((sample_id, data))                      
+        command.set_data(data)                      
         self.__add_command(command)
         
     ''' 'Remove comet tail' use case. '''
@@ -481,7 +483,7 @@ class Controller(object):
     def set_head_color_use_case(self, head_color):       
         CanvasModel.get_instance().set_head_color(head_color)
      
-    ''' 'Create DelimiterPoint' use case.
+    ''' 'Create DelimiterPoint' use case. '''
     def create_delimiter_point_use_case(self, creation_method, coordinates):
     
         # Prepare the CreateDelimiterPointCommand command
@@ -489,20 +491,71 @@ class Controller(object):
     
         # Create DelimiterPoint
         delimiter_point = self.create_delimiter_point(
-            self.__active_sample_id, creation_method, coordinates)
-        
+                              creation_method, coordinates)
+       
         # Add CreateDelimiterPointCommand to the stack
-        command.set_data(
-            (self.__active_sample_id, 
-             delimiter_point.get_id(),
-             delimiter_point.get_contour_id()
-            )
-        )
+        data = commands.CreateDelimiterPointCommandData(
+            self.__active_sample_id,
+            delimiter_point.get_id(),
+            delimiter_point.get_type(),
+            delimiter_point.get_contour_id(),
+            coordinates,
+            creation_method,
+            self.get_sample_zoom_value(self.__active_sample_id)
+        )   
+        command.set_data(data)
         self.__add_command(command)
         
         return delimiter_point
-    '''
+        
+    ''' 
+        Creates a new DelimiterPoint with given creation method and given
+        coordinates. 
+    '''    
+    def create_delimiter_point(self, creation_method, coordinates, 
+                               delimiter_point_id=None, canvas_contour_id=None):
+                       
+        return creation_method(coordinates, delimiter_point_id, canvas_contour_id)
+       
+
+    ''' 'Create and connect DelimiterPoint' use case. ''' 
+    def create_and_connect_delimiter_point_use_case(self, creation_method,
+            root_delimiter_point, coordinates):
+
+        # Prepare the CreateDelimiterPointCommand command
+        command = commands.CreateDelimiterPointCommand(self)
+        
+        # Create and connect
+        delimiter_point = self.create_and_connect_delimiter_point(
+            creation_method, root_delimiter_point, coordinates)
+        
+        # Add command to the stack
+        data = commands.CreateDelimiterPointCommandData(
+            self.__active_sample_id,
+            delimiter_point.get_id(),
+            delimiter_point.get_type(),
+            delimiter_point.get_contour_id(),
+            coordinates,
+            creation_method,
+            self.get_sample_zoom_value(self.__active_sample_id)
+        )         
+        data.set_root_delimiter_point_id(root_delimiter_point.get_id())
+        command.set_data(data)
+        self.__add_command(command)
+        
+        return delimiter_point
     
+    ''' 
+        Creates a new DelimiterPoint with given creation method and given
+        coordinates and connects it to the root DelimiterPoint. 
+    ''' 
+    def create_and_connect_delimiter_point(self, creation_method,
+            root_delimiter_point, coordinates, delimiter_point_id=None):
+     
+        return creation_method(root_delimiter_point, coordinates,
+                   delimiter_point_id)          
+   
+  
     ''' 'Move DelimiterPoints' use case. '''
     def move_delimiter_points_use_case(self, delimiter_point_selection):
    
@@ -812,11 +865,11 @@ class Controller(object):
         
         # Flip DelimiterPoints
         for (_, contour) in self.__model.get_sample(sample_id).get_tail_contour_dict().items():
-            for delimiter_point in contour.get_delimiter_point_list():
+            for delimiter_point in contour.get_delimiter_point_dict().values():
                 coordinates = delimiter_point.get_coordinates()
                 delimiter_point.set_coordinates((width-1-coordinates[0], coordinates[1]))
         for (_, contour) in self.__model.get_sample(sample_id).get_head_contour_dict().items():
-            for delimiter_point in contour.get_delimiter_point_list():
+            for delimiter_point in contour.get_delimiter_point_dict().values():
                 coordinates = delimiter_point.get_coordinates()
                 delimiter_point.set_coordinates((width-1-coordinates[0], coordinates[1]))
 
@@ -1247,9 +1300,9 @@ class Controller(object):
                     # Scale the DelimiterPoint list to ratio 1. to save in the Model as about_use_case
                     # OpenCV contour
                     utils.scale_delimiter_point_list(
-                        canvas_contour.get_delimiter_point_list(), scale_ratio)
+                        canvas_contour.get_delimiter_point_dict().values(), scale_ratio)
                     tail_contour = utils.list_to_contour(
-                        [p.get_coordinates() for p in canvas_contour.get_delimiter_point_list()]
+                        [p.get_coordinates() for p in canvas_contour.get_delimiter_point_dict().values()]
                     )
                     
                 # Build head contour
@@ -1259,9 +1312,9 @@ class Controller(object):
                     # Scale the DelimiterPoint list to ratio 1. to save in the Model as about_use_case
                     # OpenCV contour
                     utils.scale_delimiter_point_list(
-                        canvas_contour.get_delimiter_point_list(), scale_ratio)
+                        canvas_contour.get_delimiter_point_dict().values(), scale_ratio)
                     head_contour = utils.list_to_contour(
-                        [p.get_coordinates() for p in canvas_contour.get_delimiter_point_list()]
+                        [p.get_coordinates() for p in canvas_contour.get_delimiter_point_dict().values()]
                     )    
                 
                 # Update comet contours
@@ -1465,11 +1518,13 @@ class Controller(object):
     ''' Adds the requested DelimiterPoint by the user. '''
     def add_requested_delimiter_point(self):
         CanvasModel.get_instance().add_requested_delimiter_point()
-    
+           
     ''' Deletes the DelimiterPoints with given IDs. '''
-    def delete_delimiter_points(self, delimiter_point_id_list):
+    def delete_delimiter_points(self, selected_delimiter_point_list):
+                   
+        # Delete DelimiterPoints
         CanvasModel.get_instance().delete_delimiter_points(
-            delimiter_point_id_list)
+            selected_delimiter_point_list)
               
     ''' Returns the Canvas 'editing' value. '''
     def get_editing(self):
@@ -1550,7 +1605,7 @@ class Controller(object):
 
             # Parse to opencv contour
             coordinates_list = [point.get_coordinates() for point in
-                                tail_contour.get_delimiter_point_list()]
+                                tail_contour.get_delimiter_point_dict().values()]
             tail_contour = utils.scale_contour(
                                utils.list_to_contour(coordinates_list),
                                scale_ratio
@@ -1559,7 +1614,7 @@ class Controller(object):
         # [2] Build Head contour                
         # Parse to opencv contour
         coordinates_list = [point.get_coordinates() for point in
-                            head_contour.get_delimiter_point_list()]           
+                            head_contour.get_delimiter_point_dict().values()]           
         head_contour = utils.scale_contour(
                            utils.list_to_contour(coordinates_list),
                            scale_ratio
@@ -1737,27 +1792,50 @@ class Controller(object):
         
     ''' Canvas state transition to CanvasSelectionState. '''
     def canvas_transition_to_selection_state(self):
-        self.__canvas_state = CanvasSelectionState(self)
+    
+        canvas = self.__view.get_main_window().get_canvas()
+        canvas.get_selection_button().set_active(True)
+        canvas.hide_editing_buttons()
+        self.__canvas_state = CanvasSelectionState(self) 
+        canvas.update()
+        self.__view.get_main_window().get_selection_window().update()
+        
 
     ''' Canvas state transition to CanvasEditingState. '''
     def canvas_transition_to_editing_state(self):
+    
+        canvas = self.__view.get_main_window().get_canvas()
+        canvas.get_editing_button().set_active(True)
+        canvas.show_editing_buttons()    
         self.__canvas_state = CanvasEditingState(self)
-
+        canvas.update()
+        self.__view.get_main_window().get_selection_window().update()
+        
     ''' Canvas EditingState state transition to EditingSelectionState. '''
     def canvas_transition_to_editing_selection_state(self):
+
         self.__canvas_state.transition_to_editing_selection_state(self)
+        canvas = self.__view.get_main_window().get_canvas()
+        canvas.set_build_contour_buttons_sensitivity(False)
+        canvas.update()
 
     ''' Canvas EditingState state transition to EditingBuildingState. '''
     def canvas_transition_to_editing_building_state(self):
+    
         self.__canvas_state.transition_to_editing_building_state(self)
+        canvas = self.__view.get_main_window().get_canvas()
+        canvas.set_build_contour_buttons_sensitivity(True)
+        canvas.update()
 
     ''' Canvas EditingBuildingState state transition to BuildingTailContourState. '''
     def canvas_transition_to_building_tail_contour_state(self):
         self.__canvas_state.transition_to_building_tail_contour_state(self)
+        self.__view.get_main_window().get_canvas().update()
 
     ''' Canvas EditingBuildingState state transition to BuildingHeadContourState. '''
     def canvas_transition_to_building_head_contour_state(self):
         self.__canvas_state.transition_to_building_head_contour_state(self)
+        self.__view.get_main_window().get_canvas().update()
 
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #

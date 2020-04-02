@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 
 '''
-    The ViewStore module.
+    The view_store module.
 '''
 
 # PyGObject imports

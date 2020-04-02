@@ -4,6 +4,12 @@
     The commands module.
 '''
 
+# General Imports
+import model.utils as utils
+
+from model.canvas_model import CanvasModel, SelectedDelimiterPoint
+
+
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 #                                                                             #
@@ -20,9 +26,12 @@ class Command(object):
     ''' Initialization method. '''
     def __init__(self, controller):
     
-        self.controller = controller       
+        # Protected Attributes
+        self._controller = controller
+        self._data = None 
+
+        # Private Attributes
         self.__flag_unsaved_changes = controller.get_flag_unsaved_changes()
-        self.__data = None
         self.__string = ""
 
 
@@ -50,10 +59,10 @@ class Command(object):
         self.__flag_unsaved_changes = flag_unsaved_changes
 
     def get_data(self):
-        return self.__data
+        return self._data
 
     def set_data(self, data):
-        self.__data = data
+        self._data = data
            
     def get_string(self):
         return self.__string
@@ -91,7 +100,7 @@ class AddSamplesCommand(Command):
 
             (sample, parameters) = data.pop()
             # Add sample
-            self.controller.add_sample(sample, parameters)
+            self._controller.add_sample(sample, parameters)
             new_data.append(sample.get_id())
 
         # Save data        
@@ -108,7 +117,7 @@ class AddSamplesCommand(Command):
         for sample_id in data:
 
             # Delete sample
-            (sample_copy, parameters, _) = self.controller.\
+            (sample_copy, parameters, _) = self._controller.\
                                                delete_sample(sample_id)
             new_data.append((sample_copy, parameters))
             
@@ -142,7 +151,7 @@ class DeleteSampleCommand(Command):
         sample_id = self.get_data()
         
         # Delete sample
-        (sample_copy, parameters, pos) = self.controller.delete_sample(sample_id)
+        (sample_copy, parameters, pos) = self._controller.delete_sample(sample_id)
         
         # Save data
         self.set_data((sample_copy, parameters, pos))
@@ -154,7 +163,7 @@ class DeleteSampleCommand(Command):
         (sample, parameters, pos) = self.get_data()
         
         # Add sample
-        self.controller.add_sample(sample, parameters, pos)
+        self._controller.add_sample(sample, parameters, pos)
         
         # Save data
         self.set_data(sample.get_id())
@@ -192,7 +201,7 @@ class RenameSampleCommand(Command):
         (sample_id, sample_name) = self.get_data()
         
         # Rename Sample
-        previous_name = self.controller.rename_sample(
+        previous_name = self._controller.rename_sample(
                             sample_id, sample_name)
                             
         # Save data
@@ -223,14 +232,14 @@ class AddCometCommand(Command):
         (sample_id, comet, pos) = self.get_data() 
         
         # Add comet
-        self.controller.add_comet(sample_id, comet, pos)
+        self._controller.add_comet(sample_id, comet, pos)
         # Activate Sample
-        if self.controller.get_active_sample_id() != sample_id:
-            self.controller.activate_sample(sample_id)
+        if self._controller.get_active_sample_id() != sample_id:
+            self._controller.activate_sample(sample_id)
             
         # Save data
         self.set_data((sample_id, comet.get_id(), 
-            self.controller.get_model().get_sample(sample_id).get_analyzed()))
+            self._controller.get_model().get_sample(sample_id).get_analyzed()))
 
     ''' Command.undo() behaviour. '''
     def undo(self):
@@ -239,13 +248,13 @@ class AddCometCommand(Command):
         (sample_id, comet_id, analyzed_flag) = self.get_data()  
         
         # Delete comet
-        (comet_copy, pos) = self.controller.delete_comet(
+        (comet_copy, pos) = self._controller.delete_comet(
                                 sample_id, comet_id)
         # Activate Sample
-        if self.controller.get_active_sample_id() != sample_id:
-            self.controller.activate_sample(sample_id)                        
+        if self._controller.get_active_sample_id() != sample_id:
+            self._controller.activate_sample(sample_id)                        
         # Set analyzed flag
-        self.controller.set_sample_analyzed_flag(
+        self._controller.set_sample_analyzed_flag(
             sample_id, analyzed_flag)
             
         # Save data
@@ -276,11 +285,11 @@ class DeleteCometCommand(Command):
         (sample_id, comet_id) = self.get_data()
         
         # Delete comet
-        (comet_copy, pos) = self.controller.delete_comet(
+        (comet_copy, pos) = self._controller.delete_comet(
                                 sample_id, comet_id)
         # Activate Sample
-        if self.controller.get_active_sample_id() != sample_id:
-            self.controller.activate_sample(sample_id)
+        if self._controller.get_active_sample_id() != sample_id:
+            self._controller.activate_sample(sample_id)
             
         # Save data
         self.set_data((sample_id, comet_copy, pos))
@@ -292,12 +301,12 @@ class DeleteCometCommand(Command):
         (sample_id, comet, pos) = self.get_data()
         
         # Add comet
-        self.controller.add_comet(sample_id, comet, pos)        
+        self._controller.add_comet(sample_id, comet, pos)        
         # Activate Sample
-        if self.controller.get_active_sample_id() != sample_id:
-            self.controller.activate_sample(sample_id)
+        if self._controller.get_active_sample_id() != sample_id:
+            self._controller.activate_sample(sample_id)
         # Select comet
-        self.controller.select_comet(sample_id, comet.get_id())
+        self._controller.select_comet(sample_id, comet.get_id())
         
         # Save data
         self.set_data((sample_id, comet.get_id()))
@@ -327,13 +336,13 @@ class RemoveCometTailCommand(Command):
         (sample_id, comet_id) = self.get_data()
         
         # Remove comet tail
-        comet_contour = self.controller.remove_comet_tail(
+        comet_contour = self._controller.remove_comet_tail(
                             sample_id, comet_id)                           
         # Activate Sample
-        if self.controller.get_active_sample_id() != sample_id:
-            self.controller.activate_sample(sample_id)        
+        if self._controller.get_active_sample_id() != sample_id:
+            self._controller.activate_sample(sample_id)        
         # Select comet
-        self.controller.select_comet(sample_id, comet_id)                    
+        self._controller.select_comet(sample_id, comet_id)                    
                             
         # Save data
         self.set_data((sample_id, comet_id, comet_contour))
@@ -344,14 +353,14 @@ class RemoveCometTailCommand(Command):
         # Retrieve data
         (sample_id, comet_id, comet_contour) = self.get_data()
         # Add comet tail
-        self.controller.add_comet_tail(
+        self._controller.add_comet_tail(
             sample_id, comet_id, comet_contour)
 
         # Activate Sample
-        if self.controller.get_active_sample_id() != sample_id:
-            self.controller.activate_sample(sample_id)        
+        if self._controller.get_active_sample_id() != sample_id:
+            self._controller.activate_sample(sample_id)        
         # Select comet
-        self.controller.select_comet(sample_id, comet_id)
+        self._controller.select_comet(sample_id, comet_id)
         
         # Save data
         self.set_data((sample_id, comet_id))
@@ -388,7 +397,7 @@ class AnalyzeSamplesCommand(Command):
         # Retrieve data
         data = self.get_data()
         # Replace sample's comet lists
-        new_data = self.controller.update_samples_comet_list(data)
+        new_data = self._controller.update_samples_comet_list(data)
         # Save data
         self.set_data(new_data)
 
@@ -412,11 +421,11 @@ class FlipSampleImageCommand(Command):
     
     ''' Command.execute() behaviour. '''
     def execute(self):
-        self.controller.flip_sample_image(self.get_data())
+        self._controller.flip_sample_image(self.get_data())
         
     ''' Command.undo() behaviour. '''    
     def undo(self):
-        self.controller.flip_sample_image(self.get_data())
+        self._controller.flip_sample_image(self.get_data())
 
 
 
@@ -438,11 +447,11 @@ class InvertSampleImageCommand(Command):
     
     ''' Command.execute() behaviour. '''
     def execute(self):
-        self.controller.invert_sample_image(self.get_data())
+        self._controller.invert_sample_image(self.get_data())
         
     ''' Command.undo() behaviour. '''    
     def undo(self):
-        self.controller.invert_sample_image(self.get_data())
+        self._controller.invert_sample_image(self.get_data())
 
 
 
@@ -471,12 +480,12 @@ class EditCometContoursCommand(Command):
          head_canvas_contour_dict) = self.get_data()
     
         # Activate Sample
-        self.controller.activate_sample(sample_id)       
+        self._controller.activate_sample(sample_id)       
         # Select Comet
-        self.controller.select_comet(sample_id, comet_id)
+        self._controller.select_comet(sample_id, comet_id)
         
         # Update Comet as being edited
-        self.controller.start_comet_being_edited(
+        self._controller.start_comet_being_edited(
             sample_id, comet_id,
             tail_canvas_contour_dict,
             head_canvas_contour_dict
@@ -489,12 +498,12 @@ class EditCometContoursCommand(Command):
         (sample_id, comet_id, _, _) = self.get_data()
         
         # Activate Sample
-        self.controller.activate_sample(sample_id)
+        self._controller.activate_sample(sample_id)
         # Select Comet
-        self.controller.select_comet(sample_id, comet_id)
+        self._controller.select_comet(sample_id, comet_id)
         
         # Update Comet as not being edited
-        self.controller.quit_comet_being_edited()
+        self._controller.quit_comet_being_edited()
 
  
  
@@ -521,10 +530,11 @@ class CancelEditCometContoursCommand(Command):
         sample_id = self.get_data()[0] 
         
         # Activate Sample
-        self.controller.activate_sample(sample_id)
+        if self._controller.get_active_sample_id() != sample_id:
+            self._controller.activate_sample(sample_id)
         
         # Quit Comet being edited
-        self.controller.quit_comet_being_edited()
+        self._controller.quit_comet_being_edited()
 
     ''' Command.undo() behaviour. '''
     def undo(self):
@@ -535,10 +545,11 @@ class CancelEditCometContoursCommand(Command):
          head_canvas_contour_dict) = self.get_data()
          
         # Activate Sample
-        self.controller.activate_sample(sample_id) 
+        if self._controller.get_active_sample_id() != sample_id:
+            self._controller.activate_sample(sample_id) 
         
         # Start Comet being edited  
-        self.controller.start_comet_being_edited(
+        self._controller.start_comet_being_edited(
             sample_id, comet_id,
             tail_canvas_contour_dict,
             head_canvas_contour_dict
@@ -564,24 +575,66 @@ class UpdateCometContoursCommand(Command):
 
     ''' Command.execute() behaviour. '''
     def execute(self):                          
-        self.__update_comet_contours()
+        
+        # Retrieve data
+        (sample_id, comet_id, tail_contour, head_contour,
+         tail_canvas_contour_dict,
+         head_canvas_contour_dict) = self.get_data()
+        
+        # Activate Sample
+        if self._controller.get_active_sample_id() != sample_id:
+            self._controller.activate_sample(sample_id)
+         
+        # Quit Comet being edited
+        self._controller.quit_comet_being_edited()
+
+        # Update Comet contours
+        (_, 
+         previous_tail_contour,
+         previous_head_contour) = self._controller.update_comet_contours(
+                                      sample_id, comet_id, tail_contour, head_contour)
+        
+        # Save data
+        self.set_data(
+            (sample_id, comet_id, previous_tail_contour, 
+             previous_head_contour, tail_canvas_contour_dict,
+             head_canvas_contour_dict)
+        )
+         
 
     ''' Command.undo() behaviour. '''
     def undo(self):
-        self.__update_comet_contours()
-      
-    ''' Updates the Comet's contours. '''
-    def __update_comet_contours(self):
-
+    
         # Retrieve data
-        (sample_id, data) = self.get_data()
-
-        new_data = self.controller.update_comet_contours(sample_id, *data)
-
+        (sample_id, comet_id, tail_contour, head_contour,
+         tail_canvas_contour_dict,
+         head_canvas_contour_dict) = self.get_data()
+         
+        # Activate Sample
+        if self._controller.get_active_sample_id() != sample_id:
+            self._controller.activate_sample(sample_id) 
+         
+        # Start Comet being edited  
+        self._controller.start_comet_being_edited(
+            sample_id, comet_id,
+            tail_canvas_contour_dict,
+            head_canvas_contour_dict
+        )
+        
+        # Update Comet contours
+        (comet_id, 
+         previous_tail_contour,
+         previous_head_contour) = self._controller.update_comet_contours(
+                                      sample_id, comet_id, tail_contour, head_contour)
+        
         # Save data
-        self.set_data((sample_id, new_data))
+        self.set_data(
+            (sample_id, comet_id, previous_tail_contour, 
+             previous_head_contour, tail_canvas_contour_dict,
+             head_canvas_contour_dict)
+        )
 
-
+      
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 #                                                                             #
@@ -601,26 +654,165 @@ class CreateDelimiterPointCommand(Command):
 
     ''' Command.execute() behaviour. '''
     def execute(self):
-    
-        # Retrieve data
-        (sample_id, data) = self.get_data()
-                  
-        new_data = self.controller.create_delimiter_point(sample_id, *data)
+            
+        # Activate Sample if needed
+        if self._controller.get_active_sample_id() != self._data.get_sample_id():
+            self._controller.activate_sample(self._data.get_sample_id())
 
-        # Save data
-        self.set_data((sample_id, new_data))
+        # Transition to CanvasEditingState       
+        self._controller.canvas_transition_to_editing_state()
 
+        # Scale DelimiterPoint coordfinates if needed
+        current_scale_ratio = self._controller.get_sample_zoom_value(
+            self._data.get_sample_id())
+        if self._data.get_scale_ratio() != current_scale_ratio:
+        
+            # Scale and set coordinates
+            self._data.set_coordinates(
+                utils.scale_point(
+                    self._data.get_coordinates(),
+                    current_scale_ratio / scale_ratio
+                )
+            )
+            self._data.set_scale_ratio(current_scale_ratio)
+           
+        # 'Create DelimiterPoint'   
+        if self._data.get_root_delimiter_point_id() is None:     
+             
+            # Create DelimiterPoint
+            delimiter_point = self._controller.create_delimiter_point(
+                self._data.get_creation_method(),
+                self._data.get_coordinates(),
+                self._data.get_delimiter_point_id(),
+                self._data.get_canvas_contour_id()
+            ) 
+          
+        # 'Create and connect DelimiterPoint'
+        else:
+        
+            root_delimiter_point = CanvasModel.get_instance().get_delimiter_point(
+                self._data.get_root_delimiter_point_id(),
+                self._data.get_delimiter_point_type(),
+                self._data.get_canvas_contour_id()
+            )
+            
+            # Create and connect DelimiterPoint
+            delimiter_point = self._controller.create_and_connect_delimiter_point(
+                self._data.get_creation_method(),
+                root_delimiter_point,
+                self._data.get_coordinates(),
+                self._data.get_delimiter_point_id()
+            ) 
+                    
+        # Update Canvas
+        self._controller.get_view().get_main_window().get_canvas().update()
+        
+        #CanvasModel.get_instance().debug()
+  
     ''' Command.undo() behaviour. '''
     def undo(self):
 
-        # Retrieve data
-        (sample_id, data) = self.get_data()
-                  
-        new_data = self.controller.delete_delimiter_point(sample_id, *data)
+        # Activate Sample if needed
+        if self._controller.get_active_sample_id() != self._data.get_sample_id():
+            self._controller.activate_sample(self._data.get_sample_id())
 
-        # Save data
-        self.set_data((sample_id, new_data))
- 
+        # Transition to CanvasEditingState       
+        self._controller.canvas_transition_to_editing_state()
+        
+        # Delete DelimiterPoint
+        selected_delimiter_point = SelectedDelimiterPoint(
+            self._data.get_delimiter_point_id(),
+            self._data.get_delimiter_point_type(),
+            self._data.get_canvas_contour_id()
+        )
+        selected_delimiter_point.set_origin(self._data.get_coordinates())             
+        self._controller.delete_delimiter_points([selected_delimiter_point])
+       
+        # Update Canvas
+        self._controller.get_view().get_main_window().get_canvas().update()
+        
+        #CanvasModel.get_instance().debug()
+        
+        
+        
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+#                                                                             #
+#   CreateDelimiterPointCommandData                                           #
+#                                                                             #
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+
+class CreateDelimiterPointCommandData(object):
+
+    '''
+        The CreateDelimiterPointCommandData class.
+    '''
+
+    ''' Initialization method. '''
+    def __init__(self, sample_id, delimiter_point_id, delimiter_point_type,
+            canvas_contour_id, coordinates, creation_method, scale_ratio):
+        
+        self.__sample_id = sample_id
+        self.__delimiter_point_id = delimiter_point_id
+        self.__delimiter_point_type = delimiter_point_type
+        self.__canvas_contour_id = canvas_contour_id
+        self.__coordinates = coordinates      
+        self.__creation_method = creation_method
+        self.__scale_ratio = scale_ratio
+        self.__root_delimiter_point_id = None
+
+        
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+#                             Getters & Setters                               #
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #   
+   
+    def get_sample_id(self):
+        return self.__sample_id
+        
+    def set_sample_id(self, sample_id):
+        self.__sample_id = sample_id
+        
+    def get_delimiter_point_id(self):
+        return self.__delimiter_point_id
+        
+    def set_delimiter_point_id(self, delimiter_point_id):
+        self.__delimiter_point_id = delimiter_point_id
+        
+    def get_delimiter_point_type(self):
+        return self.__delimiter_point_type
+        
+    def set_delimiter_point_type(self, delimiter_point_type):
+        self.__delimiter_point_type = delimiter_point_type
+        
+    def get_canvas_contour_id(self):
+        return self.__canvas_contour_id
+        
+    def set_canvas_contour_id(self, canvas_contour_id):
+        self.__canvas_contour_id = canvas_contour_id
+        
+    def get_coordinates(self):
+        return self.__coordinates
+        
+    def set_coordinates(self, coordinates):
+        self.__coordinates = coordinates
+        
+    def get_creation_method(self):
+        return self.__creation_method
+        
+    def set_creation_method(self, creation_method):
+        self.__creation_method = creation_method
+        
+    def get_scale_ratio(self):
+        return self.__scale_ratio
+        
+    def set_scale_ratio(self, scale_ratio):
+        self.__scale_ratio = scale_ratio
+        
+    def get_root_delimiter_point_id(self):
+        return self.__root_delimiter_point_id
+        
+    def set_root_delimiter_point_id(self, root_delimiter_point_id):
+        self.__root_delimiter_point_id = root_delimiter_point_id
+
 
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
@@ -654,18 +846,14 @@ class MoveDelimiterPointsCommand(Command):
         (sample_id, delimiter_point_selection, scale_ratio) = self.get_data()
         
         # Activate Sample
-        if self.controller.get_active_sample_id() != sample_id:
-            self.controller.activate_sample(sample_id)
+        if self._controller.get_active_sample_id() != sample_id:
+            self._controller.activate_sample(sample_id)
             
-        # If 'free editing' mode, set Editing state with 'Editing Contours' mode
-        if self.controller.get_model().get_sample(sample_id).get_comet_being_edited_id() is None:
-        
-            canvas = self.controller.get_view().get_main_window().get_canvas()
-            canvas.get_editing_button().set_active(True)
-            canvas.get_editing_selection_button().set_active(True)
+        # Transition to CanvasEditingState       
+        self._controller.canvas_transition_to_editing_state()
         
         # Move points to origin coordinates
-        new_scale_ratio = self.controller.move_delimiter_points_to_origin(
+        new_scale_ratio = self._controller.move_delimiter_points_to_origin(
             delimiter_point_selection, scale_ratio)
             
         # Save data

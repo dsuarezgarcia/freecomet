@@ -7,6 +7,7 @@
 # General imports
 import itertools
 import cairo
+import copy
 
 # Custom imports
 from singleton import Singleton
@@ -15,7 +16,7 @@ import model.utils as utils
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 #                                                                             #
-# 	Colors                                                                   #
+# 	Colors                                                                    #
 #                                                                             #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ # 
 
@@ -89,6 +90,13 @@ class CanvasModel(metaclass=Singleton):
 #                                   Methods                                   #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #        
     
+    def debug(self):
+    
+        for canvas_contour in self.__tail_contour_dict.values():
+            for delimiter_point in canvas_contour.get_delimiter_point_dict().values():
+                print(delimiter_point.to_string())
+        print("*************************************************************")
+    
     ''' Behaviour when a Comet is requested to be edited. '''
     def prepare_comet_for_editing(self, opencv_tail_contour, opencv_head_contour):
     
@@ -123,7 +131,7 @@ class CanvasModel(metaclass=Singleton):
         for point in opencv_contour[1:]:
             coordinates = (point[0][0], point[0][1])
             previous_point = building_instance.create_and_connect_points(
-                coordinates, previous_point)
+                previous_point, coordinates)
 
         # Connect last and first points
         building_instance.connect_points(first_point, previous_point)
@@ -208,7 +216,7 @@ class CanvasModel(metaclass=Singleton):
 
         delimiter_point_list = []
         for (_, contour) in contour_dict.items():
-            delimiter_point_list += contour.get_delimiter_point_list()
+            delimiter_point_list += [p for (_, p) in contour.get_delimiter_point_dict().items()]
 
         return delimiter_point_list 
         
@@ -216,43 +224,48 @@ class CanvasModel(metaclass=Singleton):
         Deletes the DelimiterPoints with given IDs on given list. If the list
         is empty, the requested points to be deleted are the selected ones.
     '''    
-    def delete_delimiter_points(self, delimiter_point_id_list):
+    def delete_delimiter_points(self, selected_delimiter_point_list):
     
-        if len(delimiter_point_id_list) == 0:
-            delimiter_point_id_list = self.__delimiter_point_selection.\
-                                          get_dict().keys()
-
-        # For each existing DelimiterPoint
-        for delimiter_point in self.get_all_delimiter_points():
-
-            # DelimiterPoint is requested to be deleted
-            if delimiter_point.get_id() in delimiter_point_id_list:
-
-                # Remove itself from its local neighborhood
-                for neighbor in delimiter_point.get_neighbors():                                             
-                    neighbor.get_neighbors().remove(delimiter_point)
-
-                # Remove from the Contour it belongs to
-                if delimiter_point.get_type() == DelimiterPointType.HEAD:
-                    contour_dict = self.__head_contour_dict
-                    contour = contour_dict[delimiter_point.get_contour_id()]
-                else:
-                    contour_dict = self.__tail_contour_dict
-                    contour = contour_dict[delimiter_point.get_contour_id()]
-
-                contour.get_delimiter_point_list().remove(delimiter_point)
+        # Take the selected DelimiterPoints for removal
+        if len(selected_delimiter_point_list) == 0:
+            selected_delimiter_point_list = self.__delimiter_point_selection.\
+                                                get_dict().copy().values()
+        
+        # For each requested DelimiterPoint to be deleted
+        for selected_delimiter_point in selected_delimiter_point_list:
+        
+            if selected_delimiter_point.get_type() == DelimiterPointType.TAIL:
+                canvas_contour_dict = self.__tail_contour_dict
+            else:
+                canvas_contour_dict = self.__head_contour_dict
+                              
+            canvas_contour = canvas_contour_dict[
+                selected_delimiter_point.get_canvas_contour_id()]     
+            delimiter_point = canvas_contour.get_delimiter_point_dict()[
+                selected_delimiter_point.get_id()]
+            
+            # Remove itself from its local neighborhood
+            for neighbor in delimiter_point.get_neighbors():                                             
+                neighbor.get_neighbors().remove(delimiter_point)
                 
-                # Contour is no longer closed
-                contour.set_closed(False)
-
-                # Remove Contour object from the dictionary if has no points
-                if len(contour.get_delimiter_point_list()) == 0:
-                    del contour_dict[contour.get_id()]
+            # Remove from the CanvasContour it belongs to
+            del canvas_contour.get_delimiter_point_dict()[delimiter_point.get_id()]
+                    
+            # Contour is no longer closed
+            canvas_contour.set_closed(False)        
+            
+            # Remove Contour object from the dictionary if has no points
+            if len(canvas_contour.get_delimiter_point_dict()) == 0:
+                del canvas_contour_dict[canvas_contour.get_id()]
                 
-                # If DelimiterPoint has roommate, its roommate has no
-                # longer a roommate
-                if delimiter_point.get_roommate() is not None:
-                    delimiter_point.get_roommate().set_roommate(None)
+            # If DelimiterPoint has roommate, its roommate has no
+            # longer a roommate
+            if delimiter_point.get_roommate() is not None:
+                delimiter_point.get_roommate().set_roommate(None)
+
+            # Remove from the DelimiterPointSelection
+            if delimiter_point.get_id() in self.__delimiter_point_selection.get_dict().keys():
+                del self.__delimiter_point_selection.get_dict()[delimiter_point.get_id()]
 
     ''' Returns the DelimiterPoint with given ID. '''
     def get_delimiter_point(self, delimiter_point_id, delimiter_point_type, canvas_contour_id):
@@ -261,14 +274,10 @@ class CanvasModel(metaclass=Singleton):
             canvas_contour_dict = self.__tail_contour_dict
         else:
             canvas_contour_dict = self.__head_contour_dict
-            
-        delimiter_point_list = canvas_contour_dict[canvas_contour_id].\
-                                   get_delimiter_point_list()
+                        
+        return canvas_contour_dict[canvas_contour_id].\
+                   get_delimiter_point_dict()[delimiter_point_id]
     
-        # Search for DelimiterPoint
-        for delimiter_point in delimiter_point_list:          
-            if delimiter_point.get_id() == delimiter_point_id:
-                return delimiter_point
         
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 #                               Private Methods                               #
@@ -285,7 +294,7 @@ class CanvasModel(metaclass=Singleton):
 
         # Create new point                 
         new_delimiter_point = builder.create_delimiter_point(
-            coordinates, neighbors[0].get_contour_id())
+            coordinates, contour_id=neighbors[0].get_contour_id())
 
         make_neighbors(neighbors[0], new_delimiter_point)
         make_neighbors(neighbors[1], new_delimiter_point)
@@ -542,6 +551,9 @@ class SelectedDelimiterPoint(object):
 
     def get_id(self):
         return self.__id
+        
+    def set_id(self, id):
+        self.__id = id
 
     def get_origin(self):
         return self.__origin
@@ -615,21 +627,15 @@ class CanvasContour(object):
     new_id = itertools.count()
 
     ''' Initialization method. '''
-    def __init__(self):
+    def __init__(self, id=None):
     
-        self.__id = next(CanvasContour.new_id)
-        self.__delimiter_point_list = []
+        if id is None:
+            self.__id = next(CanvasContour.new_id)
+        else:
+            self.__id = id
+        self.__delimiter_point_dict = {}
         self.__closed = False
 
-# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
-#                                   Methods                                   #
-# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
-
-    ''' Parses and returns its content as a OpenCV contour. '''
-    def to_opencv_contour(self):
-    
-        coordinates = [p.get_coordinates() for p in self.__delimiter_point_list]
-        return utils.list_to_contour(coordinates)
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 #                              Getters & Setters                              #
@@ -641,11 +647,11 @@ class CanvasContour(object):
     def set_id(self, id):
         self.__id = id
 
-    def get_delimiter_point_list(self):
-        return self.__delimiter_point_list
+    def get_delimiter_point_dict(self):
+        return self.__delimiter_point_dict
 
-    def set_delimiter_point_list(self, delimiter_point_list):
-        self.__delimiter_point_list = delimiter_point_list
+    def set_delimiter_point_dict(self, delimiter_point_dict):
+        self.__delimiter_point_dict = delimiter_point_dict
 
     def get_closed(self):
         return self.__closed
@@ -688,9 +694,12 @@ class DelimiterPoint(object):
     new_id = itertools.count()
 
     ''' Initialization method. '''
-    def __init__(self, coordinates, type):
+    def __init__(self, coordinates, type, id):
 
-        self.__id = next(DelimiterPoint.new_id)
+        if id is None:
+            self.__id = next(DelimiterPoint.new_id)
+        else:
+            self.__id = id
         self.__contour_id = None
         self.__coordinates = coordinates
         self.__neighbors = []
@@ -762,24 +771,34 @@ class CometContourBuilder(metaclass=Singleton):
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #        
     
     ''' Behaviour creating a new DelimiterPoint. '''
-    def create_delimiter_point(self, coordinates, contour_id=None):
+    def create_delimiter_point(self, coordinates, id=None, contour_id=None):
                  
-        delimiter_point = DelimiterPoint(coordinates, self.POINT_TYPE)
+        delimiter_point = DelimiterPoint(coordinates, self.POINT_TYPE, id)
         
-        # Create a new Contour
+        # If a CanvasContour ID is NOT given
         if contour_id is None:
-            contour = CanvasContour()
-            contour_id = contour.get_id()
-            # Add the contour to the contour dict
-            self.get_contour_dict()[contour_id] = contour
-                
-        # Use existent Contour
-        else:
-            contour = self.get_contour_dict()[contour_id]
         
-        # Add the new DelimiterPoint to the Contour DelimiterPoint list
-        delimiter_point.set_contour_id(contour_id)
-        contour.get_delimiter_point_list().append(delimiter_point)
+            # Create a new CanvasContour
+            canvas_contour = CanvasContour()
+            # Add the contour to the contour dict
+            self.get_contour_dict()[canvas_contour.get_id()] = canvas_contour
+                
+        # If a CanvasContour ID is given
+        else:
+        
+            # Use existent CanvasContour 
+            if contour_id in self.get_contour_dict().keys():
+                canvas_contour = self.get_contour_dict()[contour_id]
+                
+            # Otherwise create new CanvasContour with given ID
+            else:
+                canvas_contour = CanvasContour(contour_id)
+                self.get_contour_dict()[canvas_contour.get_id()] = canvas_contour
+        
+        # Add the new DelimiterPoint to the Contour DelimiterPoint dict
+        delimiter_point.set_contour_id(canvas_contour.get_id())
+        canvas_contour.get_delimiter_point_dict()[
+            delimiter_point.get_id()] = delimiter_point
 
         return delimiter_point
 
@@ -789,29 +808,23 @@ class CometContourBuilder(metaclass=Singleton):
         # They are now local neighbors
         make_neighbors(src_point, dst_point)
 
-        # dst_point is now root
-        CanvasModel.get_instance().set_root_delimiter_point(dst_point)
-
         src_contour_id = src_point.get_contour_id()
         dst_contour_id = dst_point.get_contour_id()
         # They belong to different contours
         if src_contour_id != dst_contour_id:
 
-            src_contour_points = self.get_contour_dict()[src_contour_id].\
-                                     get_delimiter_point_list().copy()
-            dst_contour_points = self.get_contour_dict()[dst_contour_id].\
-                                     get_delimiter_point_list().copy()
-
-            # Make a new Contour with the union
+            # Make a new CanvasContour with the union
             new_contour = CanvasContour()
-            new_contour.set_delimiter_point_list(
-                src_contour_points + dst_contour_points)
-
+            new_contour.get_delimiter_point_dict().update(
+                self.get_contour_dict()[src_contour_id].get_delimiter_point_dict())
+            new_contour.get_delimiter_point_dict().update(
+                self.get_contour_dict()[dst_contour_id].get_delimiter_point_dict())
+            
             # The points belong to the new Contour
-            for delimiter_point in new_contour.get_delimiter_point_list():
+            for (_, delimiter_point) in new_contour.get_delimiter_point_dict().items():
                 delimiter_point.set_contour_id(new_contour.get_id())
 
-            # Add the new Contour to the contour dictionary
+            # Add the new CanvasContour to the CanvasContour dictionary
             self.get_contour_dict()[new_contour.get_id()] = new_contour
             # Remove the src and dst old contours
             del self.get_contour_dict()[src_contour_id]
@@ -916,11 +929,13 @@ class CometContourBuilder(metaclass=Singleton):
         Creates a new DelimiterPoint and connects this new point and the source
         given one.
     '''
-    def create_and_connect_points(self, coordinates, src_point):
+    def create_and_connect_points(self, src_point, coordinates,
+            delimiter_point_id=None):
 
         # Create the new point
         delimiter_point = self.create_delimiter_point(
-                                  coordinates, src_point.get_contour_id())
+                              coordinates, id=delimiter_point_id,
+                              contour_id=src_point.get_contour_id())
 
         # Connect the source and the new created point
         self.connect_points(src_point, delimiter_point)
@@ -1054,11 +1069,11 @@ def make_neighbors(delimiter_point1, delimiter_point2):
 '''
 def contours_are_nested(canvas_contour1, canvas_contour2):
 
-    point_list = [point.get_coordinates() for point in
-                  canvas_contour2.get_delimiter_point_list()]
+    point_list = [point.get_coordinates() for (_, point) in
+                  canvas_contour2.get_delimiter_point_dict().items()]
     cv2_contour = utils.list_to_contour(point_list)        
          
-    for delimiter_point in canvas_contour1.get_delimiter_point_list():
+    for (_, delimiter_point) in canvas_contour1.get_delimiter_point_dict().items():
         
         if (utils.is_point_inside_contour(
             cv2_contour, delimiter_point.get_coordinates())):
@@ -1076,8 +1091,8 @@ def get_delimiter_points_ids_from_closed_contours(contour_dict):
 
     for (_, contour) in contour_dict.items():
         if contour.get_closed():
-            point_ids_list += [point.get_id() for point in 
-                               contour.get_delimiter_point_list()]
+            point_ids_list += [point.get_id() for (_, point) in 
+                               contour.get_delimiter_point_dict().items()]
 
     return point_ids_list
     

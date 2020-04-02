@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 
 '''
-    The Windows module.
+    The windows module.
 '''
 
 
@@ -614,8 +614,6 @@ class SelectionWindow(MyWindow):
 
     ''' Transition to 'comet being edited' page. '''
     def transition_to_comet_being_edited(self):
-
-        print("transition to comet being edited")
 
         # Show page 1
         self.__stack.set_visible_child_name(SelectionWindow.COMET_BEING_EDITED)
