@@ -20,9 +20,11 @@ from gi.repository import Gtk
 import model.utils as utils
 from singleton import Singleton
 from controller.buttons import MouseButtons
-from model.canvas_model import CanvasModel, DelimiterPointType, DelimiterPointSelection, \
-    SelectionArea, DelimiterPoint, CanvasContour, SelectedDelimiterPoint, RequestedDelimiterPoint, \
-    TailContourBuilder, HeadContourBuilder, union, see_anchoring_with_delimiter_point_list
+from model.canvas_model import CanvasModel, DelimiterPointType, \
+    DelimiterPointSelection, SelectionArea, DelimiterPoint, CanvasContour, \
+    SelectedDelimiterPoint, RequestedDelimiterPoint, TailContourBuilder, \
+    HeadContourBuilder, union, see_anchoring_with_delimiter_point_list, \
+    make_roommates, Roommate
 
 
 
@@ -507,16 +509,6 @@ class CanvasEditingState(CanvasState):
     def get_all_head_points(self):
         return CanvasModel.get_instance().get_all_head_points()
  
-    ''' Deletes the DelimiterPoints that belong to the given list. '''
-    def delete_delimiter_points(self, delimiter_point_id_list):
-    
-        CanvasModel.get_instance().delete_delimiter_points(
-            delimiter_point_id_list)
-            
-        if self._context.get_active_sample_comet_being_edited_id() is not None:    
-            self._context.set_comet_being_edited_has_changed(True)
-            self._context.update_save_button_sensitivity() 
-    
 
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
@@ -569,8 +561,11 @@ class EditingSelectionState(ActionState):
                                                       get_dict().items():
             
                         # Get DelimiterPoint
-                        delimiter_point = get_delimiter_point(
-                            selected_point.get_id())
+                        delimiter_point = CanvasModel.get_instance().get_delimiter_point(
+                            selected_point.get_id(),
+                            selected_point.get_type(),
+                            selected_point.get_canvas_contour_id()
+                        )
                         # Set origin coordinates
                         selected_point.set_origin(
                             delimiter_point.get_coordinates())
@@ -652,10 +647,10 @@ class EditingSelectionState(ActionState):
 
             if CanvasModel.get_instance().get_anchored_delimiter_point() is not None:
 
-                CanvasModel.get_instance().get_anchored_delimiter_point().set_roommate(
-                    CanvasModel.get_instance().get_selected_pivot_delimiter_point())
-                CanvasModel.get_instance().get_selected_pivot_delimiter_point().set_roommate(
-                    CanvasModel.get_instance().get_anchored_delimiter_point())
+                make_roommates( 
+                    CanvasModel.get_instance().get_selected_pivot_delimiter_point(),
+                    CanvasModel.get_instance().get_anchored_delimiter_point()
+                )
 
             if CanvasModel.get_instance().get_delimiter_point_selection().get_moved():
 
@@ -732,8 +727,11 @@ class EditingSelectionState(ActionState):
         for (_, selected_point) in CanvasModel.get_instance().get_delimiter_point_selection().get_dict().items():
            
             # Draw selected DelimiterPoint
-            delimiter_point = get_delimiter_point(
-                selected_point.get_id())
+            delimiter_point = CanvasModel.get_instance().get_delimiter_point(
+                selected_point.get_id(),
+                selected_point.get_type(),
+                selected_point.get_canvas_contour_id()
+            )
             if delimiter_point is not None:
                 self.draw_delimiter_point(cairo_context, delimiter_point)
    
@@ -790,10 +788,10 @@ class EditingSelectionState(ActionState):
         roommate = CanvasModel.get_instance().get_selected_pivot_delimiter_point().get_roommate()
         if roommate is not None:
 
-            if (roommate.get_id() not in 
+            if (roommate.get_delimiter_point_id() not in 
                 CanvasModel.get_instance().get_delimiter_point_selection().get_dict().keys()):
 
-                roommate.set_roommate(None)
+                roommate.get_delimiter_point().set_roommate(None)
                 CanvasModel.get_instance().get_selected_pivot_delimiter_point().set_roommate(None)
 
         dst_coordinates = self.__selection_anchoring(mouse_coordinates)
@@ -808,7 +806,11 @@ class EditingSelectionState(ActionState):
         for (_, selected_point) in CanvasModel.get_instance().get_delimiter_point_selection().\
                                                     get_dict().items():
 
-            delimiter_point = get_delimiter_point(selected_point.get_id())                    
+            delimiter_point = CanvasModel.get_instance().get_delimiter_point(
+                selected_point.get_id(),
+                selected_point.get_type(),
+                selected_point.get_canvas_contour_id()
+            )                    
             x = delimiter_point.get_coordinates()[0] + x_offset
             y = delimiter_point.get_coordinates()[1] + y_offset
             delimiter_point.set_coordinates((x, y))
@@ -817,7 +819,7 @@ class EditingSelectionState(ActionState):
 
         # No anchoring if pivot point is selected with its roommate
         roommate = CanvasModel.get_instance().get_selected_pivot_delimiter_point().get_roommate() 
-        if (roommate is not None and roommate.get_id() in 
+        if (roommate is not None and roommate.get_delimiter_point_id() in 
             CanvasModel.get_instance().get_delimiter_point_selection().get_dict().keys()):
             return mouse_coordinates
 
@@ -971,7 +973,7 @@ class EditingSelectionState(ActionState):
     def delete_selected_delimiter_points(self):
     
         # Delete selected DelimiterPoints
-        self._context.delete_delimiter_points([])
+        self._context.delete_delimiter_points_use_case([])
         # No selected points
         CanvasModel.get_instance().get_delimiter_point_selection().get_dict().clear()
 
@@ -1242,19 +1244,11 @@ class BuildingContourState(ActionState):
     def anchored_point_with_root_is_same_type(self):
 
         # Connect points
-        self.BUILDER.connect_points(
-            CanvasModel.get_instance().get_root_delimiter_point(), 
+        self._context.connect_delimiter_points_use_case(
+            self.BUILDER,
+            CanvasModel.get_instance().get_root_delimiter_point(),
             CanvasModel.get_instance().get_anchored_delimiter_point()
         )
-
-        # See if the contour is closed
-        contour = self.BUILDER.get_contour_dict()[
-            CanvasModel.get_instance().get_root_delimiter_point().get_contour_id()]
-        delimiter_point_id_list = check_contour_is_closed(contour,
-                                      CanvasModel.get_instance().get_root_delimiter_point())
-
-        if contour.get_closed():     
-            self.on_closed_contour_created(contour, delimiter_point_id_list)
 
     ''' 
         Behaviour when root and anchored points are from a different type.
@@ -1262,15 +1256,16 @@ class BuildingContourState(ActionState):
     def anchored_point_with_root_is_different_type(self):
 
         # Create a new DelimiterPoint on anchored DelimiterPoint
-        # coordinates and connect with the root
-        delimiter_point = self.BUILDER.create_and_connect_points(
+        # coordinates and connect with the root        
+        delimiter_point = self._context.create_and_connect_delimiter_point_use_case(
+            self.BUILDER, 
             CanvasModel.get_instance().get_root_delimiter_point(),
-            CanvasModel.get_instance().get_anchored_delimiter_point().get_coordinates()           
+            CanvasModel.get_instance().get_anchored_delimiter_point().get_coordinates(),
+            make_roommate=True
         )
-
-        # Make roommates
-        make_roommates(CanvasModel.get_instance().get_anchored_delimiter_point(),
-            delimiter_point)
+            
+        # New created DelimiterPoint is now the root
+        CanvasModel.get_instance().set_root_delimiter_point(delimiter_point)    
             
     '''
         Left mouse button click behaviour when there isn't a root
@@ -1302,13 +1297,11 @@ class BuildingContourState(ActionState):
     def anchored_point_with_no_root_is_different_type(self):
 
         # Create a new DelimiterPoint on anchored DelimiterPoint coordinates
-        delimiter_point = self.BUILDER.create_delimiter_point(
-            CanvasModel.get_instance().get_anchored_delimiter_point().get_coordinates()
+        delimiter_point = self._context.create_delimiter_point_use_case(
+            self.BUILDER,
+            CanvasModel.get_instance().get_anchored_delimiter_point().get_coordinates(),
+            make_roommate=True
         )
-
-        # Make roommates
-        make_roommates(CanvasModel.get_instance().get_anchored_delimiter_point(),
-            delimiter_point)
 
         # New DelimiterPoint is root           
         CanvasModel.get_instance().set_root_delimiter_point(delimiter_point)
@@ -1321,7 +1314,7 @@ class BuildingContourState(ActionState):
         # Create a new DelimiterPoint on given coordinates and connect it
         # with the root        
         delimiter_point = self._context.create_and_connect_delimiter_point_use_case(
-            self.BUILDER.create_and_connect_points, 
+            self.BUILDER, 
             CanvasModel.get_instance().get_root_delimiter_point(),
             mouse_coordinates
         )    
@@ -1334,48 +1327,13 @@ class BuildingContourState(ActionState):
       
         # Create a new DelimiterPoint
         delimiter_point = self._context.create_delimiter_point_use_case(
-            self.BUILDER.create_delimiter_point,
-            mouse_coordinates)
+            self.BUILDER,
+            mouse_coordinates
+        )
   
         # New delimiter point is now the root
         CanvasModel.get_instance().set_root_delimiter_point(delimiter_point)
              
-    ''' Behaviour when a comet has been successfully built. '''
-    def on_comet_built(self, head_contour, tail_contour=None):
-
-        # Send signal to upper context
-        self._context.on_add_comet(tail_contour, head_contour)
-        # Clear the Tail points that belong to the comet contour
-        if tail_contour is not None:
-            del CanvasModel.get_instance().get_tail_contour_dict()\
-                [tail_contour.get_id()]
-        # Clear all Head contour points
-        del CanvasModel.get_instance().get_head_contour_dict()\
-                [head_contour.get_id()]
-
-        CanvasModel.get_instance().set_root_delimiter_point(None)
-
-    ''' Behaviour by default when a contour is closed. '''
-    def on_closed_contour_created(self, contour, valid_points_id_list):
-                
-        valid_points = [p for p in contour.get_delimiter_point_dict().values()
-                        if p.get_id() in valid_points_id_list]
-
-        # Contour has now only the DelimiterPoints that close the contour
-        contour.set_delimiter_point_dict(
-            {p.get_id():p for p in valid_points})
-
-        # The rest of points are removed from the neighbors pointers
-        for delimiter_point in valid_points:
-            for neighbor in delimiter_point.get_neighbors():
-                if neighbor.get_id() not in valid_points_id_list:
-                    delimiter_point.get_neighbors().remove(neighbor)
-
-        CanvasModel.get_instance().set_root_delimiter_point(None)
-        CanvasModel.get_instance().set_anchored_delimiter_point(None)
-
-        return valid_points
-
 
         
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
@@ -1423,126 +1381,9 @@ class BuildingHeadContourState(BuildingContourState):
         self.BUILDER = HeadContourBuilder.get_instance()
 
 
-    ''' Behaviour when a Head Contour is closed. '''
-    def on_closed_contour_created(self, head_contour, valid_points_id_list):
-        
-        if self._context.get_sample_comet_being_edited_id(
-            self._context.get_active_sample_id()) is not None:
-            return
-
-        valid_points = super().on_closed_contour_created(
-                           head_contour, valid_points_id_list)
-
-        closed_tail_contour_list = [contour for (_, contour) in CanvasModel.\
-                                     get_instance().get_tail_contour_dict().items()
-                                     if contour.get_closed()]
-
-        # If the Head contour is nested to a closed Tail contour, both are
-        # used to build the comet.
-        for tail_contour in closed_tail_contour_list:
-
-            tail_coordinates_list = [p.get_coordinates() for p in
-                                     tail_contour.get_delimiter_point_dict().values()]
-            cv2_tail_contour = utils.list_to_contour(tail_coordinates_list)
-                    
-            is_inside = False
-            index = 0
-            while (index < len(valid_points) and not is_inside):
- 
-                is_inside = utils.is_point_inside_contour(
-                    cv2_tail_contour, valid_points[index].get_coordinates())
-                
-                if is_inside:
-                    self.on_comet_built(head_contour, tail_contour)
-                    return
-
-                index += 1
-
-        # Otherwise, the comet is built just with the Head contour
-        self.on_comet_built(head_contour)
 
 
 
-# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
-#                            Auxiliary Methods                                #
-# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ # 
-
-''' Returns the DelimiterPoint with given ID. '''
-def get_delimiter_point(delimiter_point_id):
-
-    tail_contour_dict = CanvasModel.get_instance().get_tail_contour_dict()
-    head_contour_dict = CanvasModel.get_instance().get_head_contour_dict()
-
-    for canvas_contour in tail_contour_dict.values():
-        for (id, delimiter_point) in canvas_contour.get_delimiter_point_dict().items():
-            if id == delimiter_point_id:
-                return delimiter_point
-
-    for canvas_contour in head_contour_dict.values():
-        for (id, delimiter_point) in canvas_contour.get_delimiter_point_dict().items():
-            if id == delimiter_point_id:
-                return delimiter_point
-
-''' Makes two DelimiterPoints 'roommates'. '''
-def make_roommates(delimiter_point1, delimiter_point2):
-
-    delimiter_point1.set_roommate(delimiter_point2)
-    delimiter_point2.set_roommate(delimiter_point1)
-
-''' 
-    Checks if a CanvasContour is closed. 
-'''
-def check_contour_is_closed(contour, root_point):
-        
-    delimiter_point_id_list = []
-
-    for neighbor in root_point.get_neighbors():
-
-        delimiter_point_id_list = union(
-            delimiter_point_id_list,
-            __check_contour_is_closed(
-                neighbor,
-                root_point.get_id(),
-                root_point.get_id(),
-                []
-            ))
-
-    contour.set_closed(root_point.get_id() in delimiter_point_id_list)
-    return delimiter_point_id_list
-
-''' 
-    Recursive function that returns a list with the DelimiterPoints that
-    closes the CanvasContour.
-'''
-def __check_contour_is_closed(delimiter_point, sender_id, root_id,
-                                                     delimiter_point_id_list):
-
-    if len(delimiter_point.get_neighbors()) < 2:
-        return []
-
-    # Point is root
-    if delimiter_point.get_id() == root_id:
-        return union(delimiter_point_id_list.copy(), [root_id])
-
-    for neighbor in delimiter_point.get_neighbors():
-
-        # Neighbor isn't sender
-        if neighbor.get_id() != sender_id:
-
-            delimiter_point_id_list = union(
-                delimiter_point_id_list,
-                __check_contour_is_closed(
-                    neighbor,
-                    delimiter_point.get_id(),
-                    root_id,
-                    []
-                )
-            )
-
-    if len(delimiter_point_id_list) > 0:
-        return union(delimiter_point_id_list, [delimiter_point.get_id()])
-
-    return []
 
 
 

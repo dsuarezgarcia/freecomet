@@ -655,7 +655,7 @@ class SelectionWindow(MyWindow):
             # A comet is selected
             if comet_view is not None:
 
-                self.switch_on()
+                #self.switch_on()
 
                 comet_number = self.__view.get_active_sample_comet_number(
                     comet_view.get_id())            

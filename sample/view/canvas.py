@@ -4,6 +4,9 @@
     The canvas module.
 '''
 
+# Generic imports
+import math
+
 # PyGObject imports
 import gi
 import cairo
@@ -12,8 +15,6 @@ gi.require_foreign("cairo")
 from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import GdkPixbuf
-
-import math
 
 # Custom imports
 import model.utils as utils
@@ -101,9 +102,7 @@ class Canvas(object):
 
         self.__brush = Brush()
         self.__contours_width = 1
-        self.__contours_line_type = cairo.LINE_CAP_ROUND
-
-        self.__comet_being_edited_has_changed = False        
+        self.__contours_line_type = cairo.LINE_CAP_ROUND     
 
     ''' Restart. '''
     def restart(self):
@@ -118,6 +117,7 @@ class Canvas(object):
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 #                              Context menus                                  #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+
     ''' Pops up the CanvasSelectionState menu. '''
     def pop_up_canvas_selection_state_menu(self, event):
         self.__selection_context_menu.popup(
@@ -324,11 +324,13 @@ class Canvas(object):
         
     ''' Sets the scrolledwindow scroll position. '''
     def set_scroll_position(self, x, y):
+    
         self.__scrolledwindow.get_hadjustment().set_value(x)
         self.__scrolledwindow.get_vadjustment().set_value(y)
 
     ''' Gets the scrolledwindow scroll position. '''
     def get_scroll_position(self):
+    
         x = self.__scrolledwindow.get_hadjustment().get_value()
         y = self.__scrolledwindow.get_vadjustment().get_value()
         return (x, y)
@@ -348,6 +350,7 @@ class Canvas(object):
 
     ''' Hides editing state buttons. '''
     def hide_editing_buttons(self):
+    
         self.__editing_selection_button.hide()
         self.__building_button.hide()
         self.__build_tail_contour_button.hide()
@@ -355,6 +358,7 @@ class Canvas(object):
 
     ''' Shows editing state buttons. '''
     def show_editing_buttons(self):
+    
         self.__editing_selection_button.show_all()
         self.__building_button.show_all()
         self.__build_tail_contour_button.show_all()
@@ -365,17 +369,17 @@ class Canvas(object):
 #                              Getters & Setters                              #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ # 
 
-    def get_mouse_coordinates(self):
-        return self.__mouse_coordinates
-
-    def set_mouse_coordinates(self, location):
-        self.__mouse_coordinates = location
-
     def get_scroll_speed(self):
         return self.__scroll_speed
 
     def set_scroll_speed(self, scroll_speed):
         self.__scroll_speed = scroll_speed
+
+    def get_mouse_coordinates(self):
+        return self.__mouse_coordinates
+
+    def set_mouse_coordinates(self, location):
+        self.__mouse_coordinates = location
 
     def set_move_reference_point(self, move_reference_point):
         self.__move_reference_point = move_reference_point

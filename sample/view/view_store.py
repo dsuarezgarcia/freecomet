@@ -24,8 +24,8 @@ from observer import Observable
 class ViewStore(Observable):
 
     '''
-        The ViewStore class. Keeps the sample temporary parameters for 
-        the View components to use.
+        The ViewStore class. Keeps the Sample's temporary parameters for 
+        the View components for its use.
     '''
 
     ''' Initialization method. '''

@@ -1170,7 +1170,7 @@ class View(Observer):
         callback.
     '''
     def __on_canvas_delete_delimiter_point_button_activated(self, menu_item):
-        self.__controller.delete_delimiter_points([])
+        self.__controller.delete_delimiter_points_use_case([])
 
     '''
         Canvas 'Add delimiter point.' context menu Button 'activate'

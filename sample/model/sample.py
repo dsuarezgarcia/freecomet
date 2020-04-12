@@ -164,7 +164,7 @@ class Sample(object):
     def get_comet_being_edited_tail_contour_dict(self):
         return self.__comet_being_edited_tail_contour_dict
        
-    def set_comet_being_edited_tail_contour_dictt(self, comet_being_edited_tail_contour_dict):
+    def set_comet_being_edited_tail_contour_dict(self, comet_being_edited_tail_contour_dict):
         self.__comet_being_edited_tail_contour_dict = comet_being_edited_tail_contour_dict
         
     def get_comet_being_edited_head_contour_dict(self):
