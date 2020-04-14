@@ -35,8 +35,10 @@ from model.sample import Sample
 from model.comet import Comet
 from model.canvas_model import CanvasModel, DelimiterPointType, \
     contours_are_nested, check_contour_is_closed, make_roommates
-
-
+    
+from i18n.i18n import I18n
+from i18n.language import Language
+   
 
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
@@ -52,7 +54,10 @@ class Controller(object):
     '''
 
     ''' Initialization method. '''
-    def __init__(self, model, view, strings):
+    def __init__(self, model, view):
+    
+        # i18n
+        self.__i18n = I18n()
     
         # Active Sample ID
         self.__active_sample_id = None
@@ -60,10 +65,7 @@ class Controller(object):
         # Undo & Redo stacks
         self.__undo_stack = []
         self.__redo_stack = []
-
-        # Strings
-        self.__strings = strings
-
+        
         # Flags
         self.__flag_unsaved_changes = False
         self.__flag_project_is_new = True
@@ -83,7 +85,7 @@ class Controller(object):
         self.__view.connect(self)
         self.__view.set_application_window_title(
             self.__build_application_window_title())        
-        self.__view.set_strings(strings)
+        self.__view.set_strings(self.__i18n.get_strings())
         self.__view.start()
 
 
@@ -230,7 +232,7 @@ class Controller(object):
 
         # Prepare the RenameSampleCommand
         command = commands.RenameSampleCommand(self)
-        command.set_string(self.__strings.RENAME_SAMPLE_COMMAND_STRING)
+        command.set_string(self.__i18n.get_strings().RENAME_SAMPLE_COMMAND_STRING)
 
         # Only valid characters for a filename
         try:
@@ -253,7 +255,7 @@ class Controller(object):
 
         # Prepare the DeleteSampleCommand
         command = commands.DeleteSampleCommand(self)
-        command.set_string(self.__strings.DELETE_SAMPLE_COMMAND_STRING)
+        command.set_string(self.__i18n.get_strings().DELETE_SAMPLE_COMMAND_STRING)
 
         # Delete sample
         (sample_copy, sample_parameters, pos) = self.delete_sample(sample_id)
@@ -290,7 +292,7 @@ class Controller(object):
 
         # Prepare the DeleteCometCommand
         command = commands.DeleteCometCommand(self)
-        command.set_string(self.__strings.DELETE_COMET_COMMAND_STRING)
+        command.set_string(self.__i18n.get_strings().DELETE_COMET_COMMAND_STRING)
 
         # Delete comet
         (comet_copy, pos) = self.delete_comet(sample_id, comet_id)
@@ -304,7 +306,7 @@ class Controller(object):
     
         # Prepare the EditCometContoursCommand
         command = commands.EditCometContoursCommand(self)
-        command.set_string(self.__strings.EDIT_COMET_CONTOURS_COMMAND_STRING)
+        command.set_string(self.__i18n.get_strings().EDIT_COMET_CONTOURS_COMMAND_STRING)
 
         # Start Comet being edited
         self.start_comet_being_edited(sample_id, comet_id)
@@ -323,7 +325,7 @@ class Controller(object):
     
         # Prepare the CancelEditCometContoursCommand
         command = commands.CancelEditCometContoursCommand(self)
-        command.set_string(self.__strings.CANCEL_EDIT_COMET_CONTOURS_COMMAND_STRING)
+        command.set_string(self.__i18n.get_strings().CANCEL_EDIT_COMET_CONTOURS_COMMAND_STRING)
        
         # CanvasContours are parsed to ratio 1.
         scale_ratio = 1. / self.get_sample_zoom_value(self.__active_sample_id)
@@ -353,7 +355,7 @@ class Controller(object):
     
         # Prepare the UpdateCometContoursCommand
         command = commands.UpdateCometContoursCommand(self)
-        command.set_string(self.__strings.UPDATE_COMET_CONTOURS_COMMAND_STRING)
+        command.set_string(self.__i18n.get_strings().UPDATE_COMET_CONTOURS_COMMAND_STRING)
 
         (_, old_tail_contour, old_head_contour) = self.update_comet_contours(
             sample_id, comet_id, tail_contour, head_contour)
@@ -371,7 +373,7 @@ class Controller(object):
 
         # Prepare the RemoveCometTailCommand
         command = commands.RemoveCometTailCommand(self)
-        command.set_string(self.__strings.REMOVE_COMET_TAIL_COMMAND_STRING)
+        command.set_string(self.__i18n.get_strings().REMOVE_COMET_TAIL_COMMAND_STRING)
 
         # Remove comet tail
         tail_contour = self.remove_comet_tail(sample_id, comet_id)
@@ -444,7 +446,7 @@ class Controller(object):
 
         # Prepare the FlipSampleImageCommand
         command = commands.FlipSampleImageCommand(self)
-        command.set_string(self.__strings.FLIP_SAMPLE_IMAGE_COMMAND_STRING)
+        command.set_string(self.__i18n.get_strings().FLIP_SAMPLE_IMAGE_COMMAND_STRING)
 
         self.flip_sample_image(sample_id)
 
@@ -457,7 +459,7 @@ class Controller(object):
         
         # Prepare the InvertSampleImageCommand
         command = commands.InvertSampleImageCommand(self)
-        command.set_string(self.__strings.INVERT_SAMPLE_IMAGE_COMMAND_STRINGA)
+        command.set_string(self.__i18n.get_strings().INVERT_SAMPLE_IMAGE_COMMAND_STRINGA)
 
         self.invert_sample_image(sample_id)
 
@@ -483,7 +485,7 @@ class Controller(object):
     
         # Prepare the CreateDelimiterPointCommand command
         command = commands.CreateDelimiterPointCommand(self)
-        command.set_string(self.__strings.CREATE_DELIMITER_POINT_COMMAND_STRING)
+        command.set_string(self.__i18n.get_strings().CREATE_DELIMITER_POINT_COMMAND_STRING)
     
         # Create DelimiterPoint
         delimiter_point = self.create_delimiter_point(
@@ -531,7 +533,7 @@ class Controller(object):
 
         # Prepare the CreateDelimiterPointCommand command
         command = commands.CreateDelimiterPointCommand(self)
-        command.set_string(self.__strings.CREATE_DELIMITER_POINT_COMMAND_STRING)
+        command.set_string(self.__i18n.get_strings().CREATE_DELIMITER_POINT_COMMAND_STRING)
         
         # Create and connect
         delimiter_point = self.create_and_connect_delimiter_point(
@@ -605,7 +607,7 @@ class Controller(object):
             
                 # Prepare CanvasContourClosedCommand command
                 command = commands.CanvasContourClosedCommand(self)
-                command.set_string(self.__strings.CONNECT_DELIMITER_POINTS_COMMAND_STRING)
+                command.set_string(self.__i18n.get_strings().CONNECT_DELIMITER_POINTS_COMMAND_STRING)
                 command.set_data((self.__active_sample_id, builder, previous_canvas_contour))
                 
                 # Behaviour when a Tail CanvasContour is closed
@@ -624,7 +626,7 @@ class Controller(object):
                         
                     # Add ConnectDelimiterPointsCommand to the stack
                     command = commands.ConnectDelimiterPointsCommand(self)
-                    command.set_string(self.__strings.CONNECT_DELIMITER_POINTS_COMMAND_STRING)
+                    command.set_string(self.__i18n.get_strings().CONNECT_DELIMITER_POINTS_COMMAND_STRING)
                     command.set_data(
                     commands.ConnectDelimiterPointsCommandData(
                         self.__active_sample_id, builder,
@@ -652,7 +654,7 @@ class Controller(object):
                     
                     # Prepare the AddCometCommand
                     command = commands.AddCometCommand(self)
-                    command.set_string(self.__strings.ADD_COMET_COMMAND_STRING)
+                    command.set_string(self.__i18n.get_strings().ADD_COMET_COMMAND_STRING)
         
                     # Add AddCometCommand to the stack
                     command.set_data(commands.AddCometCommandData
@@ -670,7 +672,7 @@ class Controller(object):
            
             # Add ConnectDelimiterPointsCommand to the stack
             command = commands.ConnectDelimiterPointsCommand(self)
-            command.set_string(self.__strings.CONNECT_DELIMITER_POINTS_COMMAND_STRING)
+            command.set_string(self.__i18n.get_strings().CONNECT_DELIMITER_POINTS_COMMAND_STRING)
             command.set_data(
                 commands.ConnectDelimiterPointsCommandData(
                     self.__active_sample_id, builder,
@@ -789,7 +791,7 @@ class Controller(object):
    
         # Prepare the MoveDelimiterPointsCommand command
         command = commands.MoveDelimiterPointsCommand(self)
-        command.set_string(self.__strings.MOVE_DELIMITER_POINTS_COMMAND_STRING)
+        command.set_string(self.__i18n.get_strings().MOVE_DELIMITER_POINTS_COMMAND_STRING)
         
         # Set data
         command.set_data(
@@ -846,7 +848,7 @@ class Controller(object):
         
         # Prepare the DeleteDelimiterPointsCommand command
         command = commands.DeleteDelimiterPointsCommand(self)
-        command.set_string(self.__strings.DELETE_DELIMITER_POINTS_COMMAND_STRING)
+        command.set_string(self.__i18n.get_strings().DELETE_DELIMITER_POINTS_COMMAND_STRING)
         
         # Take the selected DelimiterPoints for removal
         if len(selected_delimiter_point_list) == 0:
@@ -916,21 +918,21 @@ class Controller(object):
     def get_undo_button_tooltip(self):
     
         if len(self.__undo_stack) == 0:
-            string = self.__strings.LAST_ACTION_LABEL
+            string = self.__i18n.get_strings().LAST_ACTION_LABEL
         else:
             string = self.__undo_stack[-1].get_string()
         
-        return self.__strings.UNDO_TOOLBAR_BUTTON_TOOLTIP.format(string) 
+        return self.__i18n.get_strings().UNDO_TOOLBAR_BUTTON_TOOLTIP.format(string) 
         
     ''' Returns the string that will be used for the Redo Button tooltip. '''
     def get_redo_button_tooltip(self):
     
         if len(self.__redo_stack) == 0:
-            string = self.__strings.LAST_ACTION_LABEL
+            string = self.__i18n.get_strings().LAST_ACTION_LABEL
         else:
             string = self.__redo_stack[-1].get_string()
         
-        return self.__strings.REDO_TOOLBAR_BUTTON_TOOLTIP.format(string)     
+        return self.__i18n.get_strings().REDO_TOOLBAR_BUTTON_TOOLTIP.format(string)     
 
     ''' 
         Removes the tail of the comet with given ID that belongs to the sample
@@ -1005,16 +1007,16 @@ class Controller(object):
     ''' Translates the app to Spanish language. '''
     def translate_app_to_spanish(self):
     
-        self.__strings.translate_to_spanish()
-        self.__view.set_strings(self.__strings)
+        self.__i18n.set_language(Language.SPANISH)
+        self.__view.set_strings(self.__i18n.get_strings())
         self.__view.set_application_window_title(
             self.__build_application_window_title())
 
     ''' Translates the app to English language. '''
     def translate_app_to_english(self):
 
-        self.__strings.translate_to_english()
-        self.__view.set_strings(self.__strings)
+        self.__i18n.set_language(Language.ENGLISH)
+        self.__view.set_strings(self.__i18n.get_strings())
         self.__view.set_application_window_title(
             self.__build_application_window_title())     
 
@@ -1029,7 +1031,7 @@ class Controller(object):
 
             # Prepare the AnalyzeSamples command
             command = commands.AnalyzeSamplesCommand(self)
-            command.set_string(self.__strings.ANALYZE_SAMPLES_COMMAND_STRING)
+            command.set_string(self.__i18n.get_strings().ANALYZE_SAMPLES_COMMAND_STRING)
 
             samples_comet_lists = []
             i = 0
@@ -1042,7 +1044,7 @@ class Controller(object):
                 sample = self.__model.get_sample(samples_id_list[i])
                 # Update AnalyzeSamplesLoadingWindow
                 GLib.idle_add(self.__view.update_analyze_samples_loading_window,
-                    self.__strings.ANALYZING_SAMPLES_WINDOW_LABEL.format(
+                    self.__i18n.get_strings().ANALYZING_SAMPLES_WINDOW_LABEL.format(
                         i+1, len(samples_id_list)), sample.get_name())
      
                 # Sample analyzed flag value previous to analysis
@@ -1446,7 +1448,7 @@ class Controller(object):
     ''' Asks user to save changes before doing an specific action. '''
     def __ask_user_to_save_before_action(self, function):
 
-        label = self.__strings.DIALOG_SAVE_BEFORE_ACTION_LABEL.format(
+        label = self.__i18n.get_strings().DIALOG_SAVE_BEFORE_ACTION_LABEL.format(
             self.__get_project_name())
 
         response_id = self.__view.run_save_before_action_dialog(
@@ -1491,7 +1493,7 @@ class Controller(object):
 
         # Prepare command
         command = commands.AddSamplesCommand(self)
-        command.set_string(self.__strings.ADD_SAMPLES_COMMAND_STRING)
+        command.set_string(self.__i18n.get_strings().ADD_SAMPLES_COMMAND_STRING)
  
         # Add samples
         added_samples_ids = []
@@ -1503,7 +1505,7 @@ class Controller(object):
 
             # Update LoadSamplesWindow
             GLib.idle_add(self.__view.update_load_samples_window, filename,
-                self.__strings.LOAD_SAMPLES_WINDOW_LABEL.format(i+1, len(filepaths)),
+                self.__i18n.get_strings().LOAD_SAMPLES_WINDOW_LABEL.format(i+1, len(filepaths)),
                 i+1, len(filepaths))
 
             sample_name = get_valid_name(filename, self.__model.get_store())
@@ -1561,7 +1563,7 @@ class Controller(object):
     def __get_project_name(self): 
 
         if self.__model.get_project_name() is None:
-            return self.__strings.DEFAULT_PROJECT_NAME
+            return self.__i18n.get_strings().DEFAULT_PROJECT_NAME
         return self.__model.get_project_name()
 
     ''' Updates the comet that was being edited contours. '''
@@ -2088,7 +2090,6 @@ class Controller(object):
         canvas.update()
         self.__view.get_main_window().get_selection_window().update()
         
-
     ''' Canvas state transition to CanvasEditingState. '''
     def canvas_transition_to_editing_state(self):
     
@@ -2130,17 +2131,17 @@ class Controller(object):
 #                              Getters & Setters                              #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 
+    def get_i18n(self):
+        return self.__i18n
+        
+    def set_i18n(self, i18n):
+        self.__i18n = i18n
+
     def get_active_sample_id(self):
         return self.__active_sample_id
         
     def set_active_sample_id(self, active_sample_id):
         self.__active_sample_id = active_sample_id
-
-    def get_strings(self):
-        return self.__strings
-       
-    def set_strings(self, strings):
-        self.__strings = strings
 
     def get_flag_unsaved_changes(self):
         return self.__flag_unsaved_changes

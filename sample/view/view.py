@@ -20,6 +20,7 @@ from view.view_store import ViewStore, SampleParameters
 from view.zoom_tool import ZoomTool
 from controller.algorithm_settings_dto import AlgorithmSettingsDto
 from observer import Observer
+from i18n.language import Language
 
 
 
@@ -158,22 +159,28 @@ class View(Observer):
             "delete-event", self.__on_main_window_delete_event)
 
         # MenuBar
-        self.__main_window.get_menubar().get_new_button().connect(
+        menubar = self.__main_window.get_menubar()
+        menubar.get_new_button().connect(
             "activate", self.__on_menubar_new_button_activated)
-        self.__main_window.get_menubar().get_open_button().connect(
+        menubar.get_open_button().connect(
             "activate", self.__on_menubar_open_button_activated)
-        self.__main_window.get_menubar().get_save_button().connect(
+        menubar.get_save_button().connect(
             "activate", self.__on_menubar_save_button_activated)
-        self.__main_window.get_menubar().get_save_as_button().connect(
+        menubar.get_save_as_button().connect(
             "activate", self.__on_menubar_save_as_button_activated)
-        self.__main_window.get_menubar().get_exit_button().connect(
+        menubar.get_exit_button().connect(
             "activate", self.__on_menubar_exit_button_activated)
-        self.__main_window.get_menubar().get_spanish_language_button().connect(
+        menubar.get_spanish_language_button().connect(
             "activate", self.__on_menubar_spanish_language_button_activated)
-        self.__main_window.get_menubar().get_english_language_button().connect(
+        menubar.get_english_language_button().connect(
             "activate", self.__on_menubar_english_language_button_activated)
-        self.__main_window.get_menubar().get_about_button().connect(
+        menubar.get_about_button().connect(
             "activate", self.__on_menubar_about_button_activated)
+            
+        if controller.get_i18n().get_language() == Language.SPANISH:
+            menubar.get_spanish_language_button().set_active(True)
+        else:
+            menubar.get_english_language_button().set_active(True)
 
         # ToolBar
         self.__main_window.get_toolbar().get_new_button().connect(
@@ -943,7 +950,7 @@ class View(Observer):
         self.__analyze_samples_window.set_single_analysis_flag(True)
         # Set window title
         self.__analyze_samples_window.get_window().set_title(
-            self.__controller.get_strings().ANALYZE_SAMPLES_SELECTION_WINDOW_TITLE.format(sample_name))
+            self.__controller.get_i18n().get_strings().ANALYZE_SAMPLES_SELECTION_WINDOW_TITLE.format(sample_name))
         # Set the samples IDs to analyze        
         self.__analyze_samples_window.set_sample_id_list([sample_id])
 
@@ -1641,11 +1648,11 @@ class View(Observer):
 
             if n_samples == 0:
                 self.__main_window.set_info_label_text(
-                    self.__controller.get_strings().INFO_LABEL_ON_EMPTY_STORE)
+                    self.__controller.get_i18n().get_strings().INFO_LABEL_ON_EMPTY_STORE)
 
             else:
                 self.__main_window.set_info_label_text(self.__controller.\
-                    get_strings().INFO_LABEL_ON_NOT_EMPTY_STORE.format(
+                    get_i18n().get_strings().INFO_LABEL_ON_NOT_EMPTY_STORE.format(
                         n_samples))
 
     ''' Updates the components with active sample's parameters '''

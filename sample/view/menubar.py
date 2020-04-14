@@ -4,6 +4,7 @@
     The menubar module.
 '''
 
+
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 #                                                                             #
 # 	MenuBar                                                                   #
@@ -36,8 +37,6 @@ class MenuBar(object):
             "spanish-language")
         self.__english_language_button = gtk_builder.get_object(
             "english-language")
-
-        self.__spanish_language_button.set_active(True)
 
         # Help tab
         self.__menu_help = gtk_builder.get_object("menubar-help")
