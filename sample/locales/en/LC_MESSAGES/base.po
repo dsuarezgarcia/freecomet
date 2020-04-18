@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-03-17 02:03+0100\n"
+"POT-Creation-Date: 2020-04-14 18:05+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Diego Suárez García <d.suarez@udc.es>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -86,16 +86,16 @@ msgid "Deshacer"
 msgstr "Undo"
 
 #: i18n/strings.py:52
-msgid "Deshacer última acción (Ctrl+Z)"
-msgstr "Undo last action (Ctrl+Z)"
+msgid "Deshacer {} (Ctrl+Z)"
+msgstr "Undo {} (Ctrl+Z)"
 
 #: i18n/strings.py:53
 msgid "Rehacer"
 msgstr "Redo"
 
 #: i18n/strings.py:54
-msgid "Rehacer última acción (Ctrl+Y)"
-msgstr "Redo last action (Ctrl+Y)"
+msgid "Rehacer {} (Ctrl+Y)"
+msgstr "Redo {} (Ctrl+Y)"
 
 #: i18n/strings.py:55
 msgid "Pantalla completa"
@@ -131,7 +131,7 @@ msgstr "Settings (Ctrl+P)"
 
 #: i18n/strings.py:67
 msgid "Generar archivo excel... (Ctrl+E)"
-msgstr "Generate excel file... (Ctrl+E)"
+msgstr "Generate spreadsheet... (Ctrl+E)"
 
 #: i18n/strings.py:68
 msgid "Modo selección"
@@ -254,8 +254,8 @@ msgid ""
 "La edición del cometa nº {} está en curso.\n"
 "Seleccione una de las acciones de abajo para terminar."
 msgstr ""
-"The nº {} comet is being edited.\n"
-"Choose one of the actions below to end."
+"nº {} comet is being edited.\n"
+"Choose one of the actions below to end it."
 
 #: i18n/strings.py:112
 msgid "Eliminar cometa"
@@ -387,9 +387,13 @@ msgstr "Flip horizontally"
 
 #: i18n/strings.py:167
 msgid "Invertir color"
-msgstr ""
+msgstr "Invert colour"
 
-#: i18n/strings.py:171
+#: i18n/strings.py:168
+msgid "última acción"
+msgstr "last action"
+
+#: i18n/strings.py:172
 msgid ""
 "Hay cambios en {} sin guardar.\n"
 "¿Desea guardar antes de continuar?"
@@ -397,7 +401,7 @@ msgstr ""
 "{} has been modified.\n"
 "¿Save before proceeding?"
 
-#: i18n/strings.py:173
+#: i18n/strings.py:174
 msgid ""
 "Originalmente creada como un Trabajo de Fin de Grado, FreeComet es una "
 "aplicación gratuita y de código abierto para trabajar con imágenes del "
@@ -406,18 +410,82 @@ msgstr ""
 "Originally created as a Final Degree Project, FreeComet is a free and open "
 "source application for working with comet assay images."
 
-#: i18n/strings.py:174
+#: i18n/strings.py:175
 msgid "Abrir proyecto"
 msgstr "Open project"
 
-#: i18n/strings.py:175
+#: i18n/strings.py:176
 msgid "Añadir muestras"
 msgstr "Add images"
 
-#: i18n/strings.py:176
+#: i18n/strings.py:177
 msgid "Guardar proyecto"
 msgstr "Save project"
 
-#: i18n/strings.py:177
+#: i18n/strings.py:178
 msgid "Advertencia - FreeComet"
 msgstr "Warning - FreeComet"
+
+#: i18n/strings.py:181
+msgid "'Añadir Imágenes'"
+msgstr "'Add Images'"
+
+#: i18n/strings.py:182
+msgid "'Eliminar Imagen'"
+msgstr "'Delete Comet'"
+
+#: i18n/strings.py:183
+msgid "'Renombrar Imagen'"
+msgstr "'Rename Image'"
+
+#: i18n/strings.py:184
+msgid "'Añadir Cometa'"
+msgstr "'Add Comet'"
+
+#: i18n/strings.py:185
+msgid "'Eliminar Cometa'"
+msgstr "'Delete Comet'"
+
+#: i18n/strings.py:186
+msgid "'Eliminar Cola de Cometa'"
+msgstr "'Remove Comet Tail'"
+
+#: i18n/strings.py:187
+msgid "'Analizar Imágenes'"
+msgstr "'Analyze Images'"
+
+#: i18n/strings.py:188
+msgid "'Voltear Imagen'"
+msgstr "'Flip Image'"
+
+#: i18n/strings.py:189
+msgid "'Invertir Imagen'"
+msgstr "'Invert Image'"
+
+#: i18n/strings.py:190
+msgid "'Comenzar Edición de Cometa'"
+msgstr "'Start Comet Editing'"
+
+#: i18n/strings.py:191
+msgid "'Cancelar Edición de Cometa'"
+msgstr "'Cancel Comet Editing'"
+
+#: i18n/strings.py:192
+msgid "'Finalizar Edición de Cometa'"
+msgstr "'End Comet Editing'"
+
+#: i18n/strings.py:193
+msgid "'Añadir Punto Delimitador'"
+msgstr "'Add point'"
+
+#: i18n/strings.py:194
+msgid "'Conectar Puntos Delimitadores'"
+msgstr "'Connect Points'"
+
+#: i18n/strings.py:195
+msgid "'Mover Puntos Delimitadores'"
+msgstr "'Move Points'"
+
+#: i18n/strings.py:196
+msgid "'Eliminar Puntos Delimitadores'"
+msgstr "'Delete Points'"

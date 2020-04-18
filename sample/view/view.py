@@ -1375,7 +1375,7 @@ class View(Observer):
 
     ''' SelectionWindow 'Save' Button 'clicked' callback. '''
     def __on_editing_comet_save_button_clicked(self, button):
-        self.__controller.save_comet_being_edited_changes()
+        self.__controller.save_comet_being_edited()
 
 
     #                                                           #

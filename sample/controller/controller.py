@@ -311,13 +311,15 @@ class Controller(object):
         # Start Comet being edited
         self.start_comet_being_edited(sample_id, comet_id)
 
-        # Add EditCometContoursCommand to the undo stack
-        data = (sample_id, comet_id,
+        # Add EditCometContoursCommand to the undo stack           
+        command.set_data(
+            commands.EditCometContoursCommandData(
+                sample_id, comet_id,
                 copy.deepcopy(CanvasModel.get_instance().get_tail_contour_dict()),
                 copy.deepcopy(CanvasModel.get_instance().get_head_contour_dict()),
                 self.get_sample_zoom_value(sample_id)
-               )               
-        command.set_data(data)                      
+            )
+        )
         self.__add_command(command)
 
     ''' 'Cancel edit comet contours' use case. '''
@@ -327,22 +329,17 @@ class Controller(object):
         command = commands.CancelEditCometContoursCommand(self)
         command.set_string(self.__i18n.get_strings().CANCEL_EDIT_COMET_CONTOURS_COMMAND_STRING)
        
-        # CanvasContours are parsed to ratio 1.
-        scale_ratio = 1. / self.get_sample_zoom_value(self.__active_sample_id)
-        
-        tail_contour_dict = copy.deepcopy(CanvasModel.get_instance().get_tail_contour_dict())
-        head_contour_dict = copy.deepcopy(CanvasModel.get_instance().get_head_contour_dict())    
-        utils.scale_canvas_contour_dict(tail_contour_dict, scale_ratio)
-        utils.scale_canvas_contour_dict(head_contour_dict, scale_ratio)
-       
-        comet_id = self.__model.get_sample(self.__active_sample_id).get_comet_being_edited_id()
-        data = (
-            self.__active_sample_id, 
-            comet_id,
-            tail_contour_dict,
-            head_contour_dict
+        comet_id = self.__model.get_sample(
+            self.__active_sample_id).get_comet_being_edited_id()
+        command.set_data(
+            commands.CancelEditCometContoursCommandData(
+                self.__active_sample_id, 
+                comet_id,
+                copy.deepcopy(CanvasModel.get_instance().get_tail_contour_dict()),
+                copy.deepcopy(CanvasModel.get_instance().get_head_contour_dict()),
+                self.get_sample_zoom_value(self.__active_sample_id)
+            )
         )
-        command.set_data(data)
       
         # Quit Comet being edited
         self.quit_comet_being_edited()
@@ -360,12 +357,15 @@ class Controller(object):
         (_, old_tail_contour, old_head_contour) = self.update_comet_contours(
             sample_id, comet_id, tail_contour, head_contour)
 
-        data = (sample_id, comet_id, old_tail_contour, old_head_contour,
+        # Add UpdateCometContoursCommand to the stack
+        command.set_data(
+            commands.UpdateCometContoursCommandData(
+                sample_id, comet_id, old_tail_contour, old_head_contour,
                 copy.deepcopy(CanvasModel.get_instance().get_tail_contour_dict()),
-                copy.deepcopy(CanvasModel.get_instance().get_head_contour_dict())
-               )
-        # Add UpdateCometContoursCommand to the undo stack
-        command.set_data(data)                      
+                copy.deepcopy(CanvasModel.get_instance().get_head_contour_dict()),
+                self.get_sample_zoom_value(sample_id)
+            )
+        )
         self.__add_command(command)
         
     ''' 'Remove comet tail' use case. '''
@@ -397,8 +397,7 @@ class Controller(object):
         command.set_flag_unsaved_changes(unsaved_changes_value)
         self.__redo_stack.append(command)
 
-        if len(self.__undo_stack) == 0:
-            self.__view.set_undo_button_sensitivity(False)
+        self.__view.set_undo_button_sensitivity(len(self.__undo_stack) > 0)
         self.__view.set_redo_button_sensitivity(True)
         
         self.__view.update_undo_and_redo_buttons_tooltips()
@@ -414,8 +413,7 @@ class Controller(object):
         command.set_flag_unsaved_changes(unsaved_changes_value)
         self.__undo_stack.append(command)
 
-        if len(self.__redo_stack) == 0:
-            self.__view.set_redo_button_sensitivity(False)
+        self.__view.set_redo_button_sensitivity(len(self.__redo_stack) > 0)
         self.__view.set_undo_button_sensitivity(True)
         
         self.__view.update_undo_and_redo_buttons_tooltips()
@@ -481,7 +479,7 @@ class Controller(object):
      
     ''' 'Create DelimiterPoint' use case. '''
     def create_delimiter_point_use_case(self, builder, coordinates,
-            make_roommate=False):
+            roommate=None):
     
         # Prepare the CreateDelimiterPointCommand command
         command = commands.CreateDelimiterPointCommand(self)
@@ -489,15 +487,11 @@ class Controller(object):
     
         # Create DelimiterPoint
         delimiter_point = self.create_delimiter_point(
-                              builder, coordinates)
-          
-        # Make roommates if requested  
-        if make_roommate:
-            
-            make_roommates(
-                CanvasModel.get_instance().get_anchored_delimiter_point(),
-                delimiter_point
-            )
+            builder, coordinates, roommate=roommate)
+
+        # If a Comet is being edited
+        if self.get_active_sample_comet_being_edited_id() is not None:
+            self.set_comet_being_edited_has_changed(True)    
        
         # Add CreateDelimiterPointCommand to the stack
         data = commands.CreateDelimiterPointCommandData(
@@ -510,6 +504,7 @@ class Controller(object):
             builder,
             self.get_sample_zoom_value(self.__active_sample_id)
         )   
+
         command.set_data(data)
         self.__add_command(command)
         
@@ -519,17 +514,16 @@ class Controller(object):
         Creates a new DelimiterPoint with given creation method and given
         coordinates. 
     '''    
-    def create_delimiter_point(self, builder, coordinates, 
-                               delimiter_point_id=None, canvas_contour_id=None,
-                               roommate=None):
-                       
+    def create_delimiter_point(self, builder, coordinates,
+            delimiter_point_id=None, canvas_contour_id=None, roommate=None):
+            
+        # Create the DelimiterPoint    
         return builder.create_delimiter_point(
             coordinates, delimiter_point_id, canvas_contour_id, roommate)
-       
 
     ''' 'Create and connect DelimiterPoint' use case. ''' 
     def create_and_connect_delimiter_point_use_case(self, builder,
-            root_delimiter_point, coordinates, make_roommate=False):
+            root_delimiter_point, coordinates, roommate=None):
 
         # Prepare the CreateDelimiterPointCommand command
         command = commands.CreateDelimiterPointCommand(self)
@@ -537,15 +531,11 @@ class Controller(object):
         
         # Create and connect
         delimiter_point = self.create_and_connect_delimiter_point(
-            builder, root_delimiter_point, coordinates)
-        
-        # Make roommates if requested  
-        if make_roommate:
-            
-            make_roommates(
-                CanvasModel.get_instance().get_anchored_delimiter_point(),
-                delimiter_point
-            )
+            builder, root_delimiter_point, coordinates, roommate=roommate)
+
+        # If a Comet is being edited
+        if self.get_active_sample_comet_being_edited_id() is not None:
+            self.set_comet_being_edited_has_changed(True)    
         
         # Add command to the stack
         data = commands.CreateDelimiterPointCommandData(
@@ -571,14 +561,13 @@ class Controller(object):
     def create_and_connect_delimiter_point(self, builder, root_delimiter_point,
             coordinates, delimiter_point_id=None, roommate=None):
      
-        return builder.create_and_connect_points(root_delimiter_point,
-                   coordinates, delimiter_point_id, roommate)  
+        # Create and connect DelimiterPoints
+        return builder.create_and_connect_points(
+            root_delimiter_point, coordinates, delimiter_point_id, roommate)
 
     ''' 'Connect DelimiterPoints' use case. '''
     def connect_delimiter_points_use_case(self, builder, src_delimiter_point,
             dst_delimiter_point): 
-
-        #CanvasModel.get_instance().debug()
 
         # Previous CanvasContours IDs of both points
         previous_src_delimiter_point_canvas_contour_id = src_delimiter_point.\
@@ -598,76 +587,78 @@ class Controller(object):
         canvas_contour = builder.get_contour_dict()[src_delimiter_point.get_contour_id()]
         delimiter_point_id_list = check_contour_is_closed(
             canvas_contour, src_delimiter_point)
-
+            
         # If the CanvasContour has been closed
         if canvas_contour.get_closed(): 
+        
+            # DoNotCreateComet flag
+            do_not_create_comet = (
+                (builder.POINT_TYPE == DelimiterPointType.TAIL) or
+                (builder.POINT_TYPE == DelimiterPointType.HEAD and 
+                 self.get_sample_comet_being_edited_id(
+                    self.get_active_sample_id()) is not None)
+            )
 
-            # If it is a Tail contour
-            if builder.POINT_TYPE == DelimiterPointType.TAIL:
+            # A CanvasContour has been closed but no Comet should be created
+            # This happens when a Tail CanvasContour is closed but also when
+            # a Head one is closed on 'Comet being edited' state.
+            if do_not_create_comet:
             
-                # Prepare CanvasContourClosedCommand command
-                command = commands.CanvasContourClosedCommand(self)
+                # Prepare CloseCanvasContourCommand command
+                command = commands.CloseCanvasContourCommand(self)
                 command.set_string(self.__i18n.get_strings().CONNECT_DELIMITER_POINTS_COMMAND_STRING)
-                command.set_data((self.__active_sample_id, builder, previous_canvas_contour))
+                command.set_data(
+                    commands.CloseCanvasContourCommandData(
+                        self.__active_sample_id,
+                        builder, 
+                        previous_canvas_contour,
+                        self.get_sample_zoom_value(self.__active_sample_id)
+                    )
+                )
                 
-                # Behaviour when a Tail CanvasContour is closed
-                self.on_tail_closed_contour_created(
+                # If a Comet is being edited
+                if self.get_active_sample_comet_being_edited_id() is not None:
+                    data.set_comet_being_edited_has_changed(
+                        self.get_comet_being_edited_has_changed())
+                    self.set_comet_being_edited_has_changed(True)
+                
+                # Behaviour by default when a CanvasContour is closed
+                self.on_closed_contour_created(
                     canvas_contour, delimiter_point_id_list)
                     
-                # Add CanvasContourClosedCommand to the stack               
+                # Add CloseCanvasContourCommand to the stack               
                 self.__add_command(command)
                 
-            # If it is a Head contour
+            # A Head CanvasContour has been closed and a Comet should be created
             else:
             
-                # If a comet is being edited
-                if self.get_sample_comet_being_edited_id(
-                        self.get_active_sample_id()) is not None:
-                        
-                    # Add ConnectDelimiterPointsCommand to the stack
-                    command = commands.ConnectDelimiterPointsCommand(self)
-                    command.set_string(self.__i18n.get_strings().CONNECT_DELIMITER_POINTS_COMMAND_STRING)
-                    command.set_data(
-                    commands.ConnectDelimiterPointsCommandData(
-                        self.__active_sample_id, builder,
-                        src_delimiter_point_id, dst_delimiter_point_id,
-                        previous_src_delimiter_point_canvas_contour_id,
-                        previous_dst_delimiter_point_canvas_contour_id,
-                        canvas_contour.get_id()
-                        )
-                    )      
-                    self.__add_command(command) 
-                   
-                # If happened on 'free editing' mode
-                else:    
-            
-                    # Behaviour when a Head CanvasContour is closed
-                    (closed_head_canvas_contour, closed_tail_canvas_contour) = \
-                        self.on_head_closed_contour_created(
-                            canvas_contour,
-                            delimiter_point_id_list
-                        )
+                # Behaviour when a Head CanvasContour is closed
+                (closed_head_canvas_contour, closed_tail_canvas_contour) = \
+                    self.on_head_closed_contour_created(
+                        canvas_contour,
+                        delimiter_point_id_list
+                    )
 
-                    # Prepare and add the new built comet
-                    comet_id = self.on_comet_built(
-                        closed_head_canvas_contour, closed_tail_canvas_contour)
-                    
-                    # Prepare the AddCometCommand
-                    command = commands.AddCometCommand(self)
-                    command.set_string(self.__i18n.get_strings().ADD_COMET_COMMAND_STRING)
-        
-                    # Add AddCometCommand to the stack
-                    command.set_data(commands.AddCometCommandData
-                        (self.__active_sample_id, comet_id, 
-                         self.__model.get_sample(self.__active_sample_id).get_analyzed(),
-                         copy.deepcopy(closed_tail_canvas_contour),
-                         previous_canvas_contour,
-                         self.get_sample_zoom_value(self.__active_sample_id)                       
-                        )
-                     )
-                    self.__add_command(command)
+                # Prepare and add the new built comet
+                comet_id = self.on_comet_built(
+                    closed_head_canvas_contour, closed_tail_canvas_contour)
+                
+                # Prepare the AddCometCommand
+                command = commands.AddCometCommand(self)
+                command.set_string(self.__i18n.get_strings().ADD_COMET_COMMAND_STRING)
+    
+                # Add AddCometCommand to the stack
+                command.set_data(commands.AddCometCommandData
+                    (self.__active_sample_id, comet_id, 
+                     self.__model.get_sample(self.__active_sample_id).get_analyzed(),
+                     copy.deepcopy(closed_tail_canvas_contour),
+                     previous_canvas_contour,
+                     self.get_sample_zoom_value(self.__active_sample_id)                       
+                    )
+                 )
+                self.__add_command(command)
          
-        # If the CanvasContour is not closed
+        # If the CanvasContour has not been closed
         else:    
            
             # Add ConnectDelimiterPointsCommand to the stack
@@ -681,11 +672,22 @@ class Controller(object):
                     previous_dst_delimiter_point_canvas_contour_id,
                     canvas_contour.get_id()
                 )
-            )      
-            self.__add_command(command)        
+            )
+
+            # If a Comet is being edited
+            if self.get_active_sample_comet_being_edited_id() is not None:
+                data.set_comet_being_edited_has_changed(
+                    self.get_comet_being_edited_has_changed())
+                self.set_comet_being_edited_has_changed(True)
+            
+            self.__add_command(command)
+            
+        # If a Comet is being edited
+        if self.get_active_sample_comet_being_edited_id() is not None:
+            self.set_comet_being_edited_has_changed(True)    
 
     ''' Behaviour by default when a CanvasContour is closed. '''
-    def __on_closed_contour_created(self, contour, valid_points_id_list):
+    def on_closed_contour_created(self, contour, valid_points_id_list):
                 
         valid_points = [p for p in contour.get_delimiter_point_dict().values()
                         if p.get_id() in valid_points_id_list]
@@ -709,13 +711,13 @@ class Controller(object):
     def on_tail_closed_contour_created(self, contour,
             valid_delimiter_point_id_list):
             
-        self.__on_closed_contour_created(
+        self.on_closed_contour_created(
             contour, valid_delimiter_point_id_list)
                 
     ''' Behaviour when a Head CanvasContour is closed. '''
     def on_head_closed_contour_created(self, head_contour, valid_points_id_list):
         
-        valid_points = self.__on_closed_contour_created(
+        valid_points = self.on_closed_contour_created(
                            head_contour, valid_points_id_list)
 
         closed_tail_contour_list = [contour for (_, contour) in CanvasModel.\
@@ -751,9 +753,10 @@ class Controller(object):
     def connect_delimiter_points(self, builder, src_delimiter_point,
             dst_delimiter_point, canvas_contour_id=None):
             
+        # Connect DelimiterPoints    
         builder.connect_points(src_delimiter_point, dst_delimiter_point,
             canvas_contour_id)
-      
+                  
     ''' 
         Disconnects 2 given DelimiterPoints.
     '''
@@ -791,15 +794,23 @@ class Controller(object):
    
         # Prepare the MoveDelimiterPointsCommand command
         command = commands.MoveDelimiterPointsCommand(self)
-        command.set_string(self.__i18n.get_strings().MOVE_DELIMITER_POINTS_COMMAND_STRING)
+        command.set_string(
+            self.__i18n.get_strings().MOVE_DELIMITER_POINTS_COMMAND_STRING)
         
-        # Set data
-        command.set_data(
-            (self.__active_sample_id,
+        data = commands.MoveDelimiterPointsCommandData(
+            self.__active_sample_id,
             copy.deepcopy(delimiter_point_selection),
-            self.get_sample_zoom_value(self.__active_sample_id))
+            self.get_sample_zoom_value(self.__active_sample_id)
         )
+               
+        # If a Comet is being edited
+        if self.get_active_sample_comet_being_edited_id() is not None:
+            data.set_comet_being_edited_has_changed(
+                self.get_comet_being_edited_has_changed())
+            self.set_comet_being_edited_has_changed(True)
+          
         # Add MoveDelimiterPointsCommand to the stack
+        command.set_data(data)
         self.__add_command(command)
         
     '''
@@ -814,7 +825,8 @@ class Controller(object):
         if scale_flag:
             new_scale_ratio = current_scale_ratio / scale_ratio
 
-        for (_, selected_delimiter_point) in delimiter_point_selection.get_dict().items():
+        for selected_delimiter_point in delimiter_point_selection.get_dict().\
+                values():
 
             # Get DelimiterPoint
             delimiter_point = CanvasModel.get_instance().get_delimiter_point(
@@ -835,16 +847,12 @@ class Controller(object):
             # Set new origin 
             delimiter_point_selection.get_dict()[delimiter_point.get_id()].\
                 set_origin(new_origin)
-        
+       
         # Update Canvas
         self.__view.get_main_window().get_canvas().update()
         
-        return current_scale_ratio
-        
     ''' 'Delete DelimiterPoints' use case. '''    
     def delete_delimiter_points_use_case(self, selected_delimiter_point_list):    
-        
-        #CanvasModel.get_instance().debug()
         
         # Prepare the DeleteDelimiterPointsCommand command
         command = commands.DeleteDelimiterPointsCommand(self)
@@ -877,20 +885,25 @@ class Controller(object):
                     delimiter_point.get_roommate(),
                     CanvasModel.get_instance().get_contour_builder(delimiter_point.get_type())
                 )
-            )  
+            )
+
+        data = commands.DeleteDelimiterPointsCommandData(
+            self.__active_sample_id,
+            deleted_delimiter_point_data_dict,
+            self.get_sample_zoom_value(self.__active_sample_id)
+        )
         
         # Delete DelimiterPoints
         self.delete_delimiter_points(selected_delimiter_point_list)
-           
-        # Set data
-        command.set_data(
-            commands.DeleteDelimiterPointsCommandData(
-                self.__active_sample_id,
-                deleted_delimiter_point_data_dict,
-                self.get_sample_zoom_value(self.__active_sample_id)
-            )
-        )
+        
+        # If a Comet is being edited, update the 'has changed' flag
+        if self.get_active_sample_comet_being_edited_id() is not None:
+            data.set_comet_being_edited_has_changed(
+                self.get_comet_being_edited_has_changed())
+            self.set_comet_being_edited_has_changed(True)
+        
         # Add DeleteDelimiterPointsCommand to the stack
+        command.set_data(data)
         self.__add_command(command)
         
         
@@ -901,14 +914,10 @@ class Controller(object):
         CanvasModel.get_instance().delete_delimiter_points(
             selected_delimiter_point_list)
     
-        # If a Comet is being edited, update the 'Save' Button sensitivity
-        if self.get_active_sample_comet_being_edited_id() is not None:    
-            self.set_comet_being_edited_has_changed(True)
-            self.update_save_button_sensitivity()
-    
         # Update Canvas
         self.__view.get_main_window().get_canvas().update()
-    
+        
+
     
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 #                                   Methods                                   # 
@@ -961,44 +970,48 @@ class Controller(object):
         self.__view.get_main_window().get_selection_window().update()
 
     ''' Updates the Save Button sensitivity. '''
-    def update_save_button_sensitivity(self):
-
-        tail_contour_dict = CanvasModel.get_instance().\
-                                 get_tail_contour_dict()
-        head_contour_dict = CanvasModel.get_instance().\
-                                 get_head_contour_dict()
-
+    def __update_save_button_sensitivity(self, comet_being_edited_has_changed):
+    
         comet_is_valid = False
-        # If there are no Tail contours, with a closed Head contour
-        # is enough
-        if len(tail_contour_dict) == 0:
+        
+        # Proceed to see if the comet is valid only if there have been changes
+        if comet_being_edited_has_changed:
+        
+            tail_contour_dict = CanvasModel.get_instance().\
+                get_tail_contour_dict()
+            head_contour_dict = CanvasModel.get_instance().\
+                get_head_contour_dict()
+        
+            # If there are no Tail contours, with a closed Head contour
+            # is enough
+            if len(tail_contour_dict) == 0:
 
-            if len(head_contour_dict) == 0:
-            
-                comet_is_valid = True
+                if len(head_contour_dict) == 0:
+                
+                    comet_is_valid = True
 
-            elif len(head_contour_dict) == 1:
+                elif len(head_contour_dict) == 1:
 
-                for (_, head_contour) in head_contour_dict.items():
+                    for (_, head_contour) in head_contour_dict.items():
 
-                    comet_is_valid = head_contour.get_closed()
-   
-        else:
+                        comet_is_valid = head_contour.get_closed()
+       
+            else:
 
-            # If there is a Tail contour, both Tail and Head contours
-            # must be closed, and also touching themselves
-            if len(tail_contour_dict) == 1:
-            
-                for (_, tail_contour) in tail_contour_dict.items():
+                # If there is a Tail contour, both Tail and Head contours
+                # must be closed, and also touching themselves
+                if len(tail_contour_dict) == 1:
+                
+                    for (_, tail_contour) in tail_contour_dict.items():
 
-                    if tail_contour.get_closed():
+                        if tail_contour.get_closed():
 
-                        for (_, head_contour) in head_contour_dict.items():
+                            for (_, head_contour) in head_contour_dict.items():
 
-                            comet_is_valid = (
-                                head_contour.get_closed() and 
-                                contours_are_nested(
-                                    head_contour, tail_contour,))
+                                comet_is_valid = (
+                                    head_contour.get_closed() and 
+                                    contours_are_nested(
+                                        head_contour, tail_contour,))
                 
 
         self.__view.get_main_window().get_selection_window().\
@@ -1566,8 +1579,8 @@ class Controller(object):
             return self.__i18n.get_strings().DEFAULT_PROJECT_NAME
         return self.__model.get_project_name()
 
-    ''' Updates the comet that was being edited contours. '''
-    def save_comet_being_edited_changes(self):
+    ''' Updates the comet contours that was being edited. '''
+    def save_comet_being_edited(self):
     
         # Only update contours if they are different from the original
         if CanvasModel.get_instance().get_comet_being_edited_has_changed():
@@ -1643,13 +1656,18 @@ class Controller(object):
 
     ''' Returns wether the comet being edited has changed or not. '''
     def get_comet_being_edited_has_changed(self):
-        CanvasModel.get_instance().get_comet_being_edited_has_changed()
+        return CanvasModel.get_instance().get_comet_being_edited_has_changed()
 
     ''' Sets wheter the comet being edited has changed or not. '''
     def set_comet_being_edited_has_changed(self, comet_being_edited_has_changed):
+    
+        # Set the 'comet_being_edited_has_changed' value
         CanvasModel.get_instance().\
             set_comet_being_edited_has_changed(comet_being_edited_has_changed)
-        
+              
+        # Update the 'Save' Button sensitivity      
+        self.__update_save_button_sensitivity(comet_being_edited_has_changed)    
+
     ''' Returns sample's tail contour dictionary with given ID. '''
     def get_sample_tail_contour_dict(self, sample_id=None):
     
@@ -1976,9 +1994,8 @@ class Controller(object):
         self.__view.get_main_window().get_canvas().get_editing_button().set_active(True)
         self.__view.get_main_window().get_canvas().get_editing_selection_button().set_active(True)
             
-        # Make SelectionWindow 'Save' button active
-        self.__view.get_main_window().get_selection_window().get_save_button()\
-            .set_sensitive(True)
+        # Make SelectionWindow 'Save' button deactivated
+        self.set_comet_being_edited_has_changed(False)
             
         self.__model.get_sample(sample_id).set_comet_being_edited_tail_contour_dict(
             CanvasModel.get_instance().get_tail_contour_dict())

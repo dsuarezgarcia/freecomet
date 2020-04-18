@@ -198,7 +198,7 @@ class CanvasModel(metaclass=Singleton):
         return HeadContourBuilder.get_instance()
 
     ''' Returns all the DelimiterPoints. '''
-    def get_all_delimiter_points(self):
+    def get_all_points(self):
     
         delimiter_point_list = []
 

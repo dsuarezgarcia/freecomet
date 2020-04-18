@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-03-17 02:03+0100\n"
+"POT-Creation-Date: 2020-04-14 18:05+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Diego Suárez García <d.suarez@udc.es>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -86,16 +86,16 @@ msgid "Deshacer"
 msgstr "Deshacer"
 
 #: i18n/strings.py:52
-msgid "Deshacer última acción (Ctrl+Z)"
-msgstr "Deshacer última acción (Ctrl+Z)"
+msgid "Deshacer {} (Ctrl+Z)"
+msgstr "Deshacer {} (Ctrl+Z)"
 
 #: i18n/strings.py:53
 msgid "Rehacer"
 msgstr "Rehacer"
 
 #: i18n/strings.py:54
-msgid "Rehacer última acción (Ctrl+Y)"
-msgstr "Rehacer última acción (Ctrl+Y)"
+msgid "Rehacer {} (Ctrl+Y)"
+msgstr "Rehacer {} (Ctrl+Y)"
 
 #: i18n/strings.py:55
 msgid "Pantalla completa"
@@ -131,7 +131,7 @@ msgstr "Configuración (Ctrl+P)"
 
 #: i18n/strings.py:67
 msgid "Generar archivo excel... (Ctrl+E)"
-msgstr "Generar archivo excel... (Ctrl+E)"
+msgstr "Generar hoja de cálculo... (Ctrl+E)"
 
 #: i18n/strings.py:68
 msgid "Modo selección"
@@ -387,39 +387,106 @@ msgstr "Voltear horizontalmente"
 
 #: i18n/strings.py:167
 msgid "Invertir color"
-msgstr ""
+msgstr "Invertir color"
 
-#: i18n/strings.py:171
+#: i18n/strings.py:168
+msgid "última acción"
+msgstr "última acción"
+
+#: i18n/strings.py:172
 msgid ""
 "Hay cambios en {} sin guardar.\n"
 "¿Desea guardar antes de continuar?"
 msgstr ""
 "Hay cambios en {} sin guardar.\n"
 "¿Desea guardar antes de continuar?"
-
-#: i18n/strings.py:173
-#, fuzzy
-msgid ""
-"Originalmente creada como un Trabajo de Fin de Grado, FreeComet es una "
-"aplicación gratuita y de código abierto para trabajar con imágenes del "
-"ensayo del cometa."
-msgstr ""
-"Originalmente creada como un Trabajo de Fin de Grado, FreeComet es una "
-"aplicación gratuita y de código abierto para trabajar con imágenes del "
-"ensayo del cometa."
 
 #: i18n/strings.py:174
+msgid ""
+"Originalmente creada como un Trabajo de Fin de Grado, FreeComet es una "
+"aplicación gratuita y de código abierto para trabajar con imágenes del "
+"ensayo del cometa."
+msgstr ""
+"Originalmente creada como un Trabajo de Fin de Grado, FreeComet es una "
+"aplicación gratuita y de código abierto para trabajar con imágenes del "
+"ensayo del cometa."
+
+#: i18n/strings.py:175
 msgid "Abrir proyecto"
 msgstr "Abrir proyecto"
 
-#: i18n/strings.py:175
+#: i18n/strings.py:176
 msgid "Añadir muestras"
 msgstr "Añadir muestras"
 
-#: i18n/strings.py:176
+#: i18n/strings.py:177
 msgid "Guardar proyecto"
 msgstr "Guardar proyecto"
 
-#: i18n/strings.py:177
+#: i18n/strings.py:178
 msgid "Advertencia - FreeComet"
 msgstr "Advertencia - FreeComet"
+
+#: i18n/strings.py:181
+msgid "'Añadir Imágenes'"
+msgstr "'Añadir Imágenes'"
+
+#: i18n/strings.py:182
+msgid "'Eliminar Imagen'"
+msgstr "'Eliminar Imagen'"
+
+#: i18n/strings.py:183
+msgid "'Renombrar Imagen'"
+msgstr "'Renombrar Imagen'"
+
+#: i18n/strings.py:184
+msgid "'Añadir Cometa'"
+msgstr "'Añadir Cometa'"
+
+#: i18n/strings.py:185
+msgid "'Eliminar Cometa'"
+msgstr "'Eliminar Cometa'"
+
+#: i18n/strings.py:186
+msgid "'Eliminar Cola de Cometa'"
+msgstr "'Eliminar Cola de Cometa'"
+
+#: i18n/strings.py:187
+msgid "'Analizar Imágenes'"
+msgstr "'Analizar imágenes'"
+
+#: i18n/strings.py:188
+msgid "'Voltear Imagen'"
+msgstr "'Voltear Imagen'"
+
+#: i18n/strings.py:189
+msgid "'Invertir Imagen'"
+msgstr "'Invertir Imagen'"
+
+#: i18n/strings.py:190
+msgid "'Comenzar Edición de Cometa'"
+msgstr "'Comenzar Edición de Cometa'"
+
+#: i18n/strings.py:191
+msgid "'Cancelar Edición de Cometa'"
+msgstr "'Cancelar Edición de Cometa'"
+
+#: i18n/strings.py:192
+msgid "'Finalizar Edición de Cometa'"
+msgstr "'Finalizar Edición de Cometa'"
+
+#: i18n/strings.py:193
+msgid "'Añadir Punto Delimitador'"
+msgstr "'Añadir Punto Delimitador'"
+
+#: i18n/strings.py:194
+msgid "'Conectar Puntos Delimitadores'"
+msgstr "'Conectar Puntos Delimitadores'"
+
+#: i18n/strings.py:195
+msgid "'Mover Puntos Delimitadores'"
+msgstr "'Mover Puntos Delimitadores'"
+
+#: i18n/strings.py:196
+msgid "'Eliminar Puntos Delimitadores'"
+msgstr "'Eliminar Puntos Delimitadores'"

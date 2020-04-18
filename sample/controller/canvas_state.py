@@ -4,6 +4,7 @@
     The canvas_state module.
 '''
 
+# General imports
 import itertools
 import cairo
 import math
@@ -38,12 +39,11 @@ from model.canvas_model import CanvasModel, DelimiterPointType, \
 class State(metaclass=Singleton):
 
     '''
-        The State class.
+        The State abstract class. Implements Singleton design pattern.
     '''
 
     ''' Initialization method. '''
-    def __init__(self, context):
-    
+    def __init__(self, context):  
         self._context = context
 
 
@@ -57,21 +57,24 @@ class State(metaclass=Singleton):
 class CanvasState(State):
 
     '''
-        The CanvasState abstract class. Extends from State.
+        The CanvasState abstract class. Extends State.
     '''
 
     ''' Initialization method. '''
     def __init__(self, context):
-
+    
+        # Canvas constructor
         super().__init__(context)
 
     ''' Mouse entrance behaviour. '''
     def on_mouse_enter(self, *args):
-        self._context.get_view().get_main_window().get_canvas().set_cursor("default")
+        self._context.get_view().get_main_window().get_canvas().\
+            set_cursor("default")
 
     ''' Mouse exit behaviour. '''
     def on_mouse_leave(self, *args):
-        self._context.get_view().get_main_window().get_canvas().set_mouse_coordinates(None)
+        self._context.get_view().get_main_window().get_canvas().\
+            set_mouse_coordinates(None)
 
     ''' Mouse motion behaviour. '''
     def on_mouse_motion(self, *args):
@@ -95,7 +98,7 @@ class CanvasState(State):
 
     ''' Get editing behaviour. '''
     def get_editing(self, *args):
-        pass 
+        pass
 
     ''' Update buttons sensitivity behaviour. '''
     def update_buttons_sensitivity(self, *args):
@@ -115,60 +118,7 @@ class CanvasState(State):
 
     ''' Transition to BuildingHeadContourState behaviour. '''
     def transition_to_building_head_contour_state(self, *args):
-        pass        
-
-
-
-# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
-#                                                                             #
-# 	ActionState                                                               #
-#                                                                             #
-# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ # 
-
-class ActionState(CanvasState):
-
-    '''
-        The ActionState class. Extends from CanvasState.
-    '''
-
-    ''' Initialization method. '''
-    def __init__(self, context):
-        super().__init__(context)
-
-    ''' Returns the anchored DelimiterPoint. '''
-    def get_anchored_delimiter_point(self):        
-        return CanvasModel.get_instance().get_anchored_delimiter_point()
-
-    ''' Sets the anchored DelimiterPoint. '''
-    def set_anchored_delimiter_point(self, anchored_delimiter_point):
-        CanvasModel.get_instance().set_anchored_delimiter_point(
-            anchored_delimiter_point)
-
-    ''' Returns a list with all active Sample DelimiterPoints. '''
-    def get_all_points(self):
-
-        if CanvasEditingState.get_instance() is not None:
-            return CanvasEditingState.get_instance().get_all_points()
-
-    ''' Draws a DelimiterPoint. '''
-    def draw_delimiter_point(self, cairo_context, delimiter_point):
-    
-        CanvasEditingState.get_instance().draw_delimiter_point(
-            cairo_context, delimiter_point)
-
-    ''' 
-        Returns all the active Sample DelimiterPoints that belong to the 
-        tail contour.
-    '''
-    def get_all_tail_points(self):
-        return CanvasEditingState.get_instance().get_all_tail_points()
-
-    ''' 
-        Returns all the active Sample DelimiterPoints that belong to the 
-        head contour.
-    '''
-    def get_all_head_points(self):
-        return CanvasEditingState.get_instance().get_all_head_points()
+        pass 
 
 
 
@@ -181,86 +131,102 @@ class ActionState(CanvasState):
 class CanvasSelectionState(CanvasState):
 
     '''
-        The CanvasSelectionState class. Implements State and Observer
-        patterns.
+        The CanvasSelectionState class. Extends CanvasState.
     '''
 
     ''' Initialization method. '''
     def __init__(self, context):
 
+        # CanvasState constructor
         super().__init__(context)
+
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 # 	                      CanvasState Implementation                          #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ # 
 
+    ''' CanvasState.on_mouse_motion() implementation method. '''
+    def on_mouse_motion(self, event):
+
+        # Holding left mouse button + motion -> move scrollbars
+        if event.state & Gdk.EventMask.BUTTON_PRESS_MASK:
+
+            # Change to 'move' type cursor
+            self._context.get_view().get_main_window().get_canvas().\
+                set_cursor("move")
+           
+            # Get movement direction of mouse
+            mouse_coordinates = int(event.x_root), int(event.y_root)
+            axis_direction = self.__get_direction(
+                mouse_coordinates,
+                self._context.get_view().get_main_window().get_canvas().\
+                    get_move_reference_point()
+            )
+            
+            # Move scrollbars
+            self._context.get_view().get_main_window().get_canvas().\
+                move_scrollbars(axis_direction)
+                
+            # Update reference point with current mouse location
+            self._context.get_view().get_main_window().get_canvas().\
+                set_move_reference_point(mouse_coordinates)
+
     ''' CanvasState.on_mouse_click() implementation method. '''
     def on_mouse_click(self, event):
         
-        # Selection and scrollbars movement
+        # Left mouse button clicked
         if event.button == MouseButtons.LEFT_BUTTON:
 
             # Select comet
             self.__check_comet_selection((int(event.x), int(event.y)))
 
-            # Scrollbars movement
-            self._context.get_view().get_main_window().get_canvas().set_move_reference_point(
-                (int(event.x_root), int(event.y_root)))
+            # Set the Canvas 'reference point' for Scrollbars movement
+            self._context.get_view().get_main_window().get_canvas().\
+                set_move_reference_point(
+                    (int(event.x_root),
+                     int(event.y_root))
+                )
 
-        # Pop up CanvasSelectionState context menu
-        elif event.button == MouseButtons.RIGHT_BUTTON:                
+        # Right mouse button clicked
+        elif event.button == MouseButtons.RIGHT_BUTTON:     
+
+            # Pop up CanvasSelectionState context menu
             self._context.get_view().get_main_window().get_canvas().\
                 pop_up_canvas_selection_state_menu(event)
 
     ''' CanvasState.on_mouse_release() implementation method. '''
     def on_mouse_release(self, event):
 
-        # Change to 'default' cursor
-        self._context.get_view().get_main_window().get_canvas().set_cursor("default")
-
-    ''' CanvasState.on_mouse_motion() implementation method. '''
-    def on_mouse_motion(self, event):
-
-        # Holding left button -> move scrollbars
-        if event.state & Gdk.EventMask.BUTTON_PRESS_MASK:
-
-            # Change to 'move' cursor
-            self._context.get_view().get_main_window().get_canvas().set_cursor("move")
-           
-            # Get movement direction of mouse
-            mouse_point = int(event.x_root), int(event.y_root)
-            axis_direction = self.__get_direction(
-                mouse_point, self._context.get_view().get_main_window().get_canvas().get_move_reference_point())
-            self._context.get_view().get_main_window().get_canvas().move_scrollbars(axis_direction)
-            # Update reference point with current mouse location
-            self._context.get_view().get_main_window().get_canvas().set_move_reference_point(mouse_point)
+        # Change to 'default' type cursor
+        self._context.get_view().get_main_window().get_canvas().\
+            set_cursor("default")
 
     ''' CanvasState.on_key_press_event() implementation method. '''
     def on_key_press_event(self, event):
 
-        keyval = event.keyval
-        keyval_name = Gdk.keyval_name(keyval)
+        keyval_name = Gdk.keyval_name(event.keyval)
 
-        # Supr -> delete selected comet
+        # 'Del' key was pressed -> delete currently selected comet
         if keyval_name == "Delete":
             self._context.delete_selected_comet()
 
     ''' CanvasState.draw() implementation method. '''
     def draw(self, cairo_context):
 
-        # Draw comet selection rect
-        self.__draw_comet_selection(cairo_context)
-
+        # Draw comet enclosing selection rectangle
+        self.__draw_comet_selection_rectangle(cairo_context)
+        
     ''' CanvasState.get_editing() implementation method. '''
     def get_editing(self):
         return False
+
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 # 	                                Methods                                   #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 
     ''' Draws a rectangle around the selected comet contour. '''
-    def __draw_comet_selection(self, cairo_context):
+    def __draw_comet_selection_rectangle(self, cairo_context):
 
         selected_comet_view = self._context.\
                                   get_active_sample_selected_comet_view()
@@ -268,18 +234,23 @@ class CanvasSelectionState(CanvasState):
         if selected_comet_view is not None:
 
             # Set Brush properties
-            brush = self._context.get_brush()
-            brush.set_width(CanvasModel.get_instance().get_selection_width())
-            brush.set_color(CanvasModel.get_instance().get_selection_color())
+            self._context.get_brush().set_width(
+                CanvasModel.get_instance().get_selection_width())
+            self._context.get_brush().set_color(
+                CanvasModel.get_instance().get_selection_color())
 
+            # Get the contour that the rectangle is gonna enclose
             contour = selected_comet_view.get_scaled_tail_contour()
             if contour is None:
                 contour = selected_comet_view.get_scaled_head_contour()
-
-            # Draw
-            selection_line = utils.contour_to_list(
-                       utils.get_contour_rect_contour(contour))
-            brush.draw_line(cairo_context, selection_line, close=True)
+            
+            # Get the selection rectangle
+            rect_contour = utils.contour_to_list(
+                utils.get_contour_rect_contour(contour))
+                
+            # Draw selection rectangle
+            self._context.get_brush().draw_line(
+                cairo_context, rect_contour, close=True)
 
     ''' Returns the mouse pointer's movement direction. '''
     def __get_direction(self, point, reference_point):
@@ -288,16 +259,20 @@ class CanvasSelectionState(CanvasState):
         y_axis = reference_point[1] - point[1]
         return x_axis, y_axis
 
-    ''' If clicked point belongs to a comet contour, comet is selected. '''
+    ''' 
+        If clicked point belongs to a comet contour, said comet is selected.
+    '''
     def __check_comet_selection(self, point):
 
-        for comet_view in self._context.get_view().get_active_sample_comet_view_list():
-        
-            comet_contour = comet_view.get_scaled_tail_contour()
-            if comet_contour is None:
-                comet_contour = comet_view.get_scaled_head_contour()
-                
-            # Select comet if point is inside the comet    
+        for comet_view in self._context.get_view().\
+            get_active_sample_comet_view_list():
+
+            # Get the contour what will be used for the check
+            comet_contour = (comet_view.get_scaled_tail_contour() if 
+                             comet_view.get_scaled_tail_contour() is not None 
+                             else comet_view.get_scaled_head_contour())
+
+            # Select comet if point is inside the comet contour    
             if utils.is_point_inside_contour(comet_contour, point):
             
                 self._context.select_comet(
@@ -316,7 +291,7 @@ class CanvasSelectionState(CanvasState):
 class CanvasEditingState(CanvasState):
 
     '''
-        The CanvasEditingState class.
+        The CanvasEditingState class. Extends CanvasState.
     '''
 
     ''' Initialization method. '''
@@ -326,61 +301,22 @@ class CanvasEditingState(CanvasState):
         super().__init__(context)
 
         # State
-        if context.get_view().get_main_window().get_canvas().get_editing_selection_button().get_active():
+        if (context.get_view().get_main_window().get_canvas().
+                get_editing_selection_button().get_active()):
             self.__state = EditingSelectionState(context)
             
-        elif context.get_view().get_main_window().get_canvas().get_building_button().get_active():
+        elif (context.get_view().get_main_window().get_canvas().
+                get_building_button().get_active()):
             self.__state = EditingBuildingState(context)
 
-# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
-# 	                               Methods                                    #
-# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
-
-    ''' Restart behaviour. '''
-    def restart(self):
-    
-        CanvasModel.get_instance().set_anchored_delimiter_point(None)
-        CanvasModel.get_instance().set_requested_delimiter_point(None)
-        self.__state.restart()
-
-    ''' Update buttons sensitivity behaviour. '''
-    def update_buttons_sensitivity(self):
-        self.__state.update_buttons_sensitivity()
-
-    ''' State transition to EditingSelectionState. '''
-    def transition_to_editing_selection_state(self, context):
-        self.__state = EditingSelectionState(context)
-
-    ''' State transition to EditingBuildingState. '''
-    def transition_to_editing_building_state(self, context):
-        self.__state = EditingBuildingState(context)
-
-    ''' State's state transition to BuildingTailContourState. '''
-    def transition_to_building_tail_contour_state(self, context):
-        self.__state.transition_to_building_tail_contour_state(context)
-
-    ''' State's state transition to BuildingHeadContourState. '''
-    def transition_to_building_head_contour_state(self, context):
-        self.__state.transition_to_building_head_contour_state(context)
-
-    ''' 
-        Tells the context to pop up the EditingSelectionState context
-        menu1.
-     '''
-    def pop_up_editing_selection_menu1(self, event):
-        self._context.get_view().get_main_window().get_canvas().pop_up_editing_selection_menu1(event)
-
-    ''' 
-        Tells the context to pop up the EditingSelectionState context
-        menu2.
-    '''
-    def pop_up_editing_selection_menu2(self, event):
-        self._context.get_view().get_main_window().get_canvas().pop_up_editing_selection_menu2(event)
-    
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 # 	                      CanvasState Implementation                          #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+
+    ''' CanvasState.on_mouse_motion() implementation method. '''
+    def on_mouse_motion(self, event):
+        self.__state.on_mouse_motion(event)
 
     ''' CanvasState.on_mouse_click() implementation method. '''
     def on_mouse_click(self, event):
@@ -389,10 +325,6 @@ class CanvasEditingState(CanvasState):
     ''' CanvasState.on_mouse_release() implementation method. '''
     def on_mouse_release(self, event):
         self.__state.on_mouse_release(event)
-
-    ''' CanvasState.on_mouse_motion() implementation method. '''
-    def on_mouse_motion(self, event):
-        self.__state.on_mouse_motion(event)
 
     ''' CanvasState.on_key_press_event() implementation method. '''
     def on_key_press_event(self, event):
@@ -420,15 +352,22 @@ class CanvasEditingState(CanvasState):
 
         brush.set_color(self._context.get_tail_color())
         # Draw tail contours edges
-        for (_, tail_contour) in CanvasModel.get_instance().get_tail_contour_dict().items():
+        for tail_contour in CanvasModel.get_instance().\
+                get_tail_contour_dict().values():
+                
             self.__draw_edge_lines(
-                cairo_context, [p for (_, p) in tail_contour.get_delimiter_point_dict().items()])
+                cairo_context, 
+                [p for p in tail_contour.get_delimiter_point_dict().values()]
+            )
 
         brush.set_color(self._context.get_head_color())
         # Draw head contour edges            
-        for (_, head_contour) in CanvasModel.get_instance().get_head_contour_dict().items():
+        for head_contour in CanvasModel.get_instance().\
+                get_head_contour_dict().values():
             self.__draw_edge_lines(
-                cairo_context, [p for (_, p) in head_contour.get_delimiter_point_dict().items()])
+                cairo_context, 
+                [p for p in head_contour.get_delimiter_point_dict().values()]
+            )
 
     ''' 
         Draws the edge lines between the DelimiterPoints in the given list.
@@ -459,15 +398,21 @@ class CanvasEditingState(CanvasState):
         self._context.get_brush().set_color(
             self._context.get_tail_color())
         # Draw Tail delimiter points           
-        for (_, tail_contour) in CanvasModel.get_instance().get_tail_contour_dict().items():
-            for (_, delimiter_point) in tail_contour.get_delimiter_point_dict().items():
+        for tail_contour in CanvasModel.get_instance().\
+                get_tail_contour_dict().values():
+                
+            for delimiter_point in tail_contour.get_delimiter_point_dict().\
+                    values():
                 self.draw_delimiter_point(cairo_context, delimiter_point)              
 
         self._context.get_brush().set_color(
             self._context.get_head_color())
+            
         # Draw Head delimiter points           
-        for (_, head_contour) in CanvasModel.get_instance().get_head_contour_dict().items():
-            for (_, delimiter_point) in head_contour.get_delimiter_point_dict().items():
+        for head_contour in CanvasModel.get_instance().\
+                get_head_contour_dict().values():
+            for delimiter_point in head_contour.get_delimiter_point_dict().\
+                    values():
                 self.draw_delimiter_point(cairo_context, delimiter_point) 
 
     ''' Draws a given DelimiterPoint. '''
@@ -487,28 +432,48 @@ class CanvasEditingState(CanvasState):
                 cairo_context,
                 delimiter_point.get_coordinates(),
                 CanvasModel.DELIMITER_POINT_SIZE
-            )
-
+            )     
+       
     ''' CanvasState.get_editing() implementation method. '''
     def get_editing(self):
         return True
 
+    ''' CanvasState.update_buttons_sensitivity() implementation. '''
+    def update_buttons_sensitivity(self):
+        self.__state.update_buttons_sensitivity()
+
+    ''' CanvasState.transition_to_editing_selection_state() implementation. '''
+    def transition_to_editing_selection_state(self, context):
+        self.__state = EditingSelectionState(context)
+
+    ''' CanvasState.transition_to_editing_building_state() implementation. '''
+    def transition_to_editing_building_state(self, context):
+        self.__state = EditingBuildingState(context)
+
+    ''' 
+        CanvasState.transition_to_building_tail_contour_state() implementation.
+    '''
+    def transition_to_building_tail_contour_state(self, context):
+        self.__state.transition_to_building_tail_contour_state(context)
+
+    ''' 
+        CanvasState.transition_to_building_head_contour_state() implementation.
+    '''
+    def transition_to_building_head_contour_state(self, context):
+        self.__state.transition_to_building_head_contour_state(context)            
+
+
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
-# 	                                Methods                                   #
+# 	                               Methods                                    #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 
-    ''' Returns all the DelimiterPoints. '''
-    def get_all_points(self):
-        return CanvasModel.get_instance().get_all_delimiter_points()
+    ''' Restart behaviour. '''
+    def restart(self):
+    
+        CanvasModel.get_instance().set_anchored_delimiter_point(None)
+        CanvasModel.get_instance().set_requested_delimiter_point(None)
+        self.__state.restart()
 
-    ''' Returns all the tail contours DelimiterPoints. '''
-    def get_all_tail_points(self):
-        return CanvasModel.get_instance().get_all_tail_points()
-
-    ''' Returns all the Head contours DelimiterPoints. '''
-    def get_all_head_points(self):
-        return CanvasModel.get_instance().get_all_head_points()
- 
 
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
@@ -517,21 +482,22 @@ class CanvasEditingState(CanvasState):
 #                                                                             #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 
-class EditingSelectionState(ActionState):
+class EditingSelectionState(CanvasState):
 
     '''
-        The EditingSelectionState class.
+        The EditingSelectionState class. Extends CanvasState.
     '''
 
     ''' Initialization method. '''
     def __init__(self, context):
 
-        # State constructor
+        # CanvasState constructor
         super().__init__(context)
-        
-        self.initialize()
-            
-    def initialize(self):
+        # Initialization behaviour
+        self.__initialize()
+           
+    ''' Initialization behaviour. '''           
+    def __initialize(self):
       
         CanvasModel.get_instance().set_anchored_delimiter_point(None)
         CanvasModel.get_instance().set_selection_area(None)
@@ -546,7 +512,7 @@ class EditingSelectionState(ActionState):
 # 	                      CanvasState Implementation                          #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 
-    ''' Mouse motion behaviour. '''
+    ''' CanvasState.mouse_motion() implementation method. '''
     def on_mouse_motion(self, event):
         
         # Holding left mouse button
@@ -555,22 +521,27 @@ class EditingSelectionState(ActionState):
             if CanvasModel.get_instance().get_selection_area() is None:
 
                 # Set selectedDelimiterPoints origin coordinates
-                if not CanvasModel.get_instance().get_delimiter_point_selection().get_moved():
+                if (not CanvasModel.get_instance().
+                        get_delimiter_point_selection().get_moved()):
 
-                    for (_, selected_point) in CanvasModel.get_instance().get_delimiter_point_selection().\
-                                                      get_dict().items():
+                    for selected_point in CanvasModel.get_instance().\
+                            get_delimiter_point_selection().get_dict().values():
             
                         # Get DelimiterPoint
-                        delimiter_point = CanvasModel.get_instance().get_delimiter_point(
-                            selected_point.get_id(),
-                            selected_point.get_type(),
-                            selected_point.get_canvas_contour_id()
+                        delimiter_point = (
+                            CanvasModel.get_instance().get_delimiter_point(
+                                selected_point.get_id(),
+                                selected_point.get_type(),
+                                selected_point.get_canvas_contour_id()
+                            )
                         )
+                        
                         # Set origin coordinates
                         selected_point.set_origin(
                             delimiter_point.get_coordinates())
 
-                    CanvasModel.get_instance().get_delimiter_point_selection().set_moved(True)
+                    CanvasModel.get_instance().\
+                        get_delimiter_point_selection().set_moved(True)
      
                 # Move selected DelimiterPoints
                 self.move_selected_delimiter_points(
@@ -578,44 +549,49 @@ class EditingSelectionState(ActionState):
 
             else:
                 # Update the SelectionArea ending point
-                CanvasModel.get_instance().get_selection_area().set_ending_point(
-                    (int(event.x), int(event.y)))
+                CanvasModel.get_instance().get_selection_area().\
+                    set_ending_point((int(event.x), int(event.y)))
 
-    ''' Mouse clicking behaviour. '''
+    ''' CanvasState.mouse_click() implementation method. '''
     def on_mouse_click(self, event):
         
         mouse_coordinates = (int(event.x), int(event.y))
-        # See if the 'click' was above a DelimiterPoint
-        (value, delimiter_point) = self.click_on_delimiter_point(
-                                       mouse_coordinates)
+        # See if the 'click' was on a DelimiterPoint
+        delimiter_point = self.__click_on_delimiter_point(
+            mouse_coordinates)
 
         # Click was on a DelimiterPoint
-        if value:
+        if delimiter_point is not None:
 
             accel_mask = Gtk.accelerator_get_default_mod_mask()
             # Ctrl + click
             if event.state & accel_mask == Gdk.ModifierType.CONTROL_MASK:
                 # Toggle DelimiterPoint selection                 
-                self.toggle_delimiter_point_selection(delimiter_point)
+                self.__toggle_delimiter_point_selection(delimiter_point)
 
             # Ctrl is not pressed
             else:
 
                 # Right click
                 if event.button == MouseButtons.RIGHT_BUTTON:
-                    self._context.get_view().get_main_window().get_canvas().pop_up_editing_selection_menu1(event)
+                    self._context.get_view().get_main_window().get_canvas().\
+                        pop_up_editing_selection_menu1(event)
 
                 # If it is not already selected, it is selected as an individual 
-                if (delimiter_point.get_id() not in 
-                    CanvasModel.get_instance().get_delimiter_point_selection().get_dict().keys()):
+                if (delimiter_point.get_id() not in CanvasModel.get_instance().
+                        get_delimiter_point_selection().get_dict().keys()):
 
-                    CanvasModel.get_instance().get_delimiter_point_selection().get_dict().clear()
-                    CanvasModel.get_instance().get_delimiter_point_selection().get_dict()[
-                        delimiter_point.get_id()] = SelectedDelimiterPoint(
-                                                        delimiter_point.get_id(),
-                                                        delimiter_point.get_type(),
-                                                        delimiter_point.get_contour_id()
-                                                    )                       
+                    CanvasModel.get_instance().\
+                        get_delimiter_point_selection().get_dict().clear()
+                        
+                    CanvasModel.get_instance().get_delimiter_point_selection().\
+                        get_dict()[delimiter_point.get_id()] = (
+                            SelectedDelimiterPoint(
+                                delimiter_point.get_id(),
+                                delimiter_point.get_type(),
+                                delimiter_point.get_contour_id()
+                            )
+                        )
 
         # Click wasn't on a DelimiterPoint          
         else:
@@ -627,104 +603,115 @@ class EditingSelectionState(ActionState):
                 if candidate is not None:
                 
                     CanvasModel.get_instance().set_requested_delimiter_point(
-                        RequestedDelimiterPoint(mouse_coordinates, candidate[0])
+                        RequestedDelimiterPoint(
+                            mouse_coordinates,
+                            candidate[0]
+                        )
                     )
-                    self._context.get_view().get_main_window().get_canvas().pop_up_editing_selection_menu2(event)
+                    self._context.get_view().get_main_window().get_canvas().\
+                        pop_up_editing_selection_menu2(event)
 
             # Left click
             else:
       
-                CanvasModel.get_instance().get_delimiter_point_selection().get_dict().clear()
-                CanvasModel.get_instance().set_selection_area(SelectionArea(mouse_coordinates))
+                CanvasModel.get_instance().get_delimiter_point_selection().\
+                    get_dict().clear()
+                CanvasModel.get_instance().set_selection_area(
+                    SelectionArea(mouse_coordinates))
 
-    ''' Mouse release behaviour. '''
+    ''' CanvasState.mouse_release() implementation method. '''
     def on_mouse_release(self, event):
         
         if CanvasModel.get_instance().get_selection_area() is not None:
             self.select_delimiter_points_inside_selection_area()
 
-        if CanvasModel.get_instance().get_selected_pivot_delimiter_point() is not None:
+        if (CanvasModel.get_instance().get_selected_pivot_delimiter_point()
+                is not None):
 
-            if CanvasModel.get_instance().get_anchored_delimiter_point() is not None:
+            if (CanvasModel.get_instance().get_anchored_delimiter_point()
+                    is not None):
 
                 make_roommates( 
                     CanvasModel.get_instance().get_selected_pivot_delimiter_point(),
                     CanvasModel.get_instance().get_anchored_delimiter_point()
                 )
 
-            if CanvasModel.get_instance().get_delimiter_point_selection().get_moved():
+            if (CanvasModel.get_instance().get_delimiter_point_selection().
+                    get_moved()):
 
                 # Call 'move delimiter points' use case.
                 self._context.move_delimiter_points_use_case(
                     CanvasModel.get_instance().get_delimiter_point_selection())
 
-                if self._context.get_active_sample_comet_being_edited_id() is not None:
-                    
-                    self._context.update_save_button_sensitivity()
-                    self._context.set_comet_being_edited_has_changed(True)
-
-                CanvasModel.get_instance().get_delimiter_point_selection().set_moved(False)
+                CanvasModel.get_instance().get_delimiter_point_selection().\
+                    set_moved(False)
 
         CanvasModel.get_instance().set_anchored_delimiter_point(None)
         CanvasModel.get_instance().set_selected_pivot_delimiter_point(None)            
         CanvasModel.get_instance().set_selection_area(None)
 
-    ''' Key press behaviour. '''
+    ''' CanvasState.on_key_press_event() implementation method. '''
     def on_key_press_event(self, event):
 
-        keyval = event.keyval
-        keyval_name = Gdk.keyval_name(keyval)
+        keyval_name = Gdk.keyval_name(event.keyval)
 
-        # Supr -> delete selected DelimiterPoints
+        # 'Del' key pressed -> delete selected DelimiterPoints
         if keyval_name == "Delete":
 
-            if len(CanvasModel.get_instance().get_delimiter_point_selection().get_dict()) == 0:
+            if (len(CanvasModel.get_instance().get_delimiter_point_selection().
+                    get_dict()) == 0):
                 return True
 
             self.delete_selected_delimiter_points()
 
-    ''' Drawing behaviour. '''
+    ''' CanvasState.draw() implementation method. '''
     def draw(self, cairo_context):
         
-        self.draw_selected_delimiter_points(cairo_context)
-        self.draw_selection_area(cairo_context)
+        self.__draw_selected_delimiter_points(cairo_context)
+        self.__draw_selection_area(cairo_context)
+        
+    ''' CanvasState.update_buttons_sensitivity() implementation method. '''
+    def update_buttons_sensitivity(self):
+    
+        self._context.get_build_tail_contour_button().set_sensitive(False)
+        self._context.get_build_head_contour_button().set_sensitive(False)    
 
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 # 	                               Methods                                    #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #  
 
-    ''' 'update buttons sensitivity' behaviour. '''
-    def update_buttons_sensitivity(self):
-        self._context.get_build_tail_contour_button().set_sensitive(
-            False)
-        self._context.get_build_head_contour_button().set_sensitive(
-            False)   
-
     ''' Toggles the selection of a given DelimiterPoint. '''  
-    def toggle_delimiter_point_selection(self, delimiter_point):
+    def __toggle_delimiter_point_selection(self, delimiter_point):
 
-        if delimiter_point.get_id() not in \
-                       CanvasModel.get_instance().get_delimiter_point_selection().get_dict().keys():
-            CanvasModel.get_instance().get_delimiter_point_selection().get_dict()[delimiter_point.\
-                get_id()] = SelectedDelimiterPoint(
-                                 delimiter_point.get_id(),
-                                 delimiter_point.get_type(),
-                                 delimiter_point.get_contour_id()
-                            ) 
+        # Add the DelimiterPoint to the selection if it's not selected
+        if (delimiter_point.get_id() not in CanvasModel.get_instance().
+                get_delimiter_point_selection().get_dict().keys()):
+                
+            CanvasModel.get_instance().get_delimiter_point_selection().\
+                get_dict()[delimiter_point.get_id()] = (
+                    SelectedDelimiterPoint(
+                        delimiter_point.get_id(),
+                        delimiter_point.get_type(),
+                        delimiter_point.get_contour_id()
+                    )
+                )
+        # If it is already selected, deselect the DelimiterPoint      
         else:
-            del CanvasModel.get_instance().get_delimiter_point_selection().get_dict()[
-                delimiter_point.get_id()]
+        
+            del CanvasModel.get_instance().get_delimiter_point_selection().\
+                get_dict()[delimiter_point.get_id()]
 
     ''' Draws the selected DelimiterPoints. '''
-    def draw_selected_delimiter_points(self, cairo_context):
+    def __draw_selected_delimiter_points(self, cairo_context):
     
         # These DelimiterPoints have a different color
         self._context.get_brush().set_color(
             CanvasModel.get_instance().get_delimiter_point_selection_color()
         )
 
-        for (_, selected_point) in CanvasModel.get_instance().get_delimiter_point_selection().get_dict().items():
+        for selected_point in CanvasModel.get_instance().\
+                get_delimiter_point_selection().get_dict().values():
            
             # Draw selected DelimiterPoint
             delimiter_point = CanvasModel.get_instance().get_delimiter_point(
@@ -733,14 +720,16 @@ class EditingSelectionState(ActionState):
                 selected_point.get_canvas_contour_id()
             )
             if delimiter_point is not None:
-                self.draw_delimiter_point(cairo_context, delimiter_point)
+                CanvasEditingState.get_instance().draw_delimiter_point(
+                    cairo_context, delimiter_point)
    
     ''' Draws the selection area. '''
-    def draw_selection_area(self, cairo_context):
+    def __draw_selection_area(self, cairo_context):
 
         if CanvasModel.get_instance().get_selection_area() is not None:
 
-            (rect_x, rect_y, width, height) = CanvasModel.get_instance().get_selection_area().get_rect()
+            (rect_x, rect_y, width, height) = \
+                CanvasModel.get_instance().get_selection_area().get_rect()
             
             # Set Brush properties
             self._context.get_brush().set_color(
@@ -755,44 +744,51 @@ class EditingSelectionState(ActionState):
 
             # Draw DelimiterPoints inside the selection area as if they were
             # selected
-            for delimiter_point in self.get_all_points():
+            for delimiter_point in CanvasModel.get_instance().get_all_points():
 
                 (point_x, point_y) = delimiter_point.get_coordinates()
                 if ( (point_x >= rect_x and point_x <= rect_x + width) and
                      (point_y >= rect_y and point_y <= rect_y + height) ):
 
                     # Draw DelimiterPoint
-                    self.draw_delimiter_point(cairo_context, delimiter_point)
+                    CanvasEditingState.get_instance().draw_delimiter_point(
+                        cairo_context, delimiter_point)
 
 
     ''' Selects the DelimiterPoints inside the selection area. '''
     def select_delimiter_points_inside_selection_area(self):
 
-        (rect_x, rect_y, width, height) = CanvasModel.get_instance().get_selection_area().get_rect()
-        for delimiter_point in self.get_all_points():
+        (rect_x, rect_y, width, height) = \
+            CanvasModel.get_instance().get_selection_area().get_rect()
+            
+        for delimiter_point in CanvasModel.get_instance().get_all_points():
 
-            (point_x, point_y) = delimiter_point.get_coordinates()
-            if ( (point_x >= rect_x and point_x <= rect_x + width) and
-                 (point_y >= rect_y and point_y <= rect_y + height) ):
+            (x, y) = delimiter_point.get_coordinates()
+            if ( (x >= rect_x and x <= rect_x + width) and
+                 (y >= rect_y and y <= rect_y + height) ):
 
-                CanvasModel.get_instance().get_delimiter_point_selection().get_dict()[
-                    delimiter_point.get_id()] = SelectedDelimiterPoint(
-                                                    delimiter_point.get_id(),
-                                                    delimiter_point.get_type(),
-                                                    delimiter_point.get_contour_id()
-                                                ) 
+                CanvasModel.get_instance().get_delimiter_point_selection().\
+                    get_dict()[delimiter_point.get_id()] = \
+                        SelectedDelimiterPoint(
+                            delimiter_point.get_id(),
+                            delimiter_point.get_type(),
+                            delimiter_point.get_contour_id()
+                        ) 
 
     ''' Moves the selected DelimiterPoints. '''
     def move_selected_delimiter_points(self, mouse_coordinates):
 
-        roommate = CanvasModel.get_instance().get_selected_pivot_delimiter_point().get_roommate()
+        roommate = CanvasModel.get_instance().\
+            get_selected_pivot_delimiter_point().get_roommate()
+            
         if roommate is not None:
 
-            if (roommate.get_delimiter_point_id() not in 
-                CanvasModel.get_instance().get_delimiter_point_selection().get_dict().keys()):
+            if (roommate.get_delimiter_point_id() not in CanvasModel.
+                    get_instance().get_delimiter_point_selection().get_dict().keys()):
 
                 roommate.get_delimiter_point().set_roommate(None)
-                CanvasModel.get_instance().get_selected_pivot_delimiter_point().set_roommate(None)
+                CanvasModel.get_instance().\
+                    get_selected_pivot_delimiter_point().set_roommate(None)
 
         dst_coordinates = self.__selection_anchoring(mouse_coordinates)
         if dst_coordinates is None:
@@ -823,22 +819,31 @@ class EditingSelectionState(ActionState):
             CanvasModel.get_instance().get_delimiter_point_selection().get_dict().keys()):
             return mouse_coordinates
 
-        pivot_point_coordinates = \
-                CanvasModel.get_instance().get_selected_pivot_delimiter_point().get_coordinates()
+        pivot_point_coordinates = CanvasModel.get_instance().\
+            get_selected_pivot_delimiter_point().get_coordinates()
 
         # See if mouse pointer is close to a DelimiterPoint different of
         # selected pivot DelimiterPoint's type.
-        if CanvasModel.get_instance().get_selected_pivot_delimiter_point().get_type() == \
-                                                DelimiterPointType.HEAD:
-            delimiter_point_list = self.get_all_tail_points()
+        if (CanvasModel.get_instance().get_selected_pivot_delimiter_point().
+                get_type() == DelimiterPointType.HEAD):
+                
+            delimiter_point_list = CanvasModel.get_instance().\
+                get_all_tail_points()
+            
         else:
-            delimiter_point_list = self.get_all_head_points()
+            delimiter_point_list = CanvasModel.get_instance().\
+                get_all_head_points()
 
         # The forbidden id list
-        points_with_roommate = [point.get_id() for point in delimiter_point_list if 
-                                point.get_roommate() is not None]
-        forbidden_id_list = union(CanvasModel.get_instance().get_delimiter_point_selection().\
-                                get_dict().keys(), points_with_roommate)
+        points_with_roommate = [p.get_id() for p in delimiter_point_list if 
+                                p.get_roommate() is not None]
+        forbidden_id_list = (
+            union(
+                CanvasModel.get_instance().get_delimiter_point_selection().
+                    get_dict().keys(),
+                points_with_roommate
+            )
+        )
 
         # Search for candidate
         candidate = see_anchoring_with_delimiter_point_list(
@@ -849,15 +854,19 @@ class EditingSelectionState(ActionState):
         if candidate is not None:
             
             # If the candidate is already the anchored DelimiterPoint
-            if (CanvasModel.get_instance().get_anchored_delimiter_point() is not None and
-                CanvasModel.get_instance().get_anchored_delimiter_point().get_id() ==
-                candidate[0].get_id()):
+            if (CanvasModel.get_instance().get_anchored_delimiter_point() is
+                    not None and CanvasModel.get_instance().
+                    get_anchored_delimiter_point().get_id() == candidate[0].
+                    get_id()):
+                    
                 return None
 
             # The pivot DelimiterPoint isn't anchored and is close to a
             # DelimiterPoint of different type
             else:
-                CanvasModel.get_instance().set_anchored_delimiter_point(candidate[0])
+            
+                CanvasModel.get_instance().set_anchored_delimiter_point(
+                    candidate[0])
                 return candidate[0].get_coordinates()
 
         else:
@@ -865,21 +874,24 @@ class EditingSelectionState(ActionState):
             return mouse_coordinates
 
     ''' Sees if given coordinates belong to a DelimiterPoint. '''
-    def click_on_delimiter_point(self, mouse_coordinates):
+    def __click_on_delimiter_point(self, mouse_coordinates):
 
         # See if the click is above a DelimiterPoint
-        for delimiter_point in self.get_all_points():
+        for delimiter_point in CanvasModel.get_instance().get_all_points():
 
             euclidean_distance = utils.euclidean_distance(
                                     delimiter_point.get_coordinates(),
                                     mouse_coordinates)
 
             # The click is above a DelimiterPoint
-            if euclidean_distance <= CanvasModel.get_instance().get_selection_distance():
-                CanvasModel.get_instance().set_selected_pivot_delimiter_point(delimiter_point)
-                return (True, delimiter_point)
+            if (euclidean_distance <= CanvasModel.get_instance().
+                    get_selection_distance()):
+                    
+                CanvasModel.get_instance().set_selected_pivot_delimiter_point(
+                    delimiter_point)
+                return delimiter_point
 
-        return (False, None)
+        return None
 
     ''' Returns the existing edges, defined by two DelimiterPoints. '''
     def get_edges(self):
@@ -887,7 +899,7 @@ class EditingSelectionState(ActionState):
         edges = []
         aux_dic = {}
 
-        for delimiter_point in self.get_all_points():
+        for delimiter_point in CanvasModel.get_instance().get_all_points():
 
             if delimiter_point.get_id() not in aux_dic:
                 aux_dic[delimiter_point.get_id()] = []
@@ -908,7 +920,7 @@ class EditingSelectionState(ActionState):
         return edges            
 
     ''' 
-        Sees if given right click coordinates belong to a edge between
+        Sees if given right click coordinates belong to an edge between
         two DelimiterPoints.
     '''
     def right_click_on_edge(self, mouse_coordinates):
@@ -921,7 +933,8 @@ class EditingSelectionState(ActionState):
             distance = self.get_distance_point_to_segment(
                            mouse_coordinates, edge)           
 
-            if distance <= CanvasModel.get_instance().get_edge_selection_distance():
+            if (distance <= CanvasModel.get_instance().
+                    get_edge_selection_distance()):
             
                 if candidate is None:
                     candidate = (edge, distance)
@@ -975,7 +988,9 @@ class EditingSelectionState(ActionState):
         # Delete selected DelimiterPoints
         self._context.delete_delimiter_points_use_case([])
         # No selected points
-        CanvasModel.get_instance().get_delimiter_point_selection().get_dict().clear()
+        CanvasModel.get_instance().get_delimiter_point_selection().\
+            get_dict().clear()
+
 
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
@@ -984,18 +999,18 @@ class EditingSelectionState(ActionState):
 #                                                                             #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 
-class EditingBuildingState(ActionState):
+class EditingBuildingState(CanvasState):
 
     '''
-        The EditingBuildingState class.
+        The EditingBuildingState class. Extends CanvasState.
     '''
 
     ''' Initialization method. '''
     def __init__(self, context):
 
-        # State constructor
+        # CanvasState constructor
         super().__init__(context)
-        
+        # Initialization behaviour
         self.__initialize()
 
     ''' Initialization behaviour. '''
@@ -1020,45 +1035,38 @@ class EditingBuildingState(ActionState):
 # 	                      CanvasState Implementation                          #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 
-    ''' Mouse motion behaviour. '''
+    ''' CanvasState.mouse_motion() implementation method. '''
     def on_mouse_motion(self, event):
         self.__state.on_mouse_motion(event)
 
-    ''' Mouse clicking behaviour. '''
+    ''' CanvasState.mouse_click() implementation method. '''
     def on_mouse_click(self, event):
+        self.__state.on_mouse_click(event)
 
-        # Left click
-        if event.button == MouseButtons.LEFT_BUTTON:
-            self.__state.left_mouse_button_click(event)
-
-        # Right click
-        elif event.button == MouseButtons.RIGHT_BUTTON:
-            self.__state.right_mouse_button_click(event)
-
-    ''' Mouse release behaviour. '''
+    ''' CanvasState.mouse_release() implementation method. '''
     def on_mouse_release(self, event):
         pass
 
-    ''' Key press behaviour. '''
+    ''' CanvasState.on_key_press_event() implementation method. '''
     def on_key_press_event(self, event):
         pass
 
-    ''' Drawing behaviour. '''
+    ''' CanvasState.draw() implementation method. '''
     def draw(self, cairo_context):
     
         self.__draw_building_trail_line(cairo_context)
         self.__draw_mouse_pointer_delimiter_point(cairo_context)
             
     ''' 
-        Draws the trail between the root and mouse pointer 
-        DelimiterPoints.
+        Draws the trail between the root and mouse pointer DelimiterPoints. 
     '''
     def __draw_building_trail_line(self, cairo_context):
             
         if CanvasModel.get_instance().get_root_delimiter_point() is not None:
 
-            mouse_coordinates = self._context.get_view().get_main_window().get_canvas().get_mouse_coordinates()
-            if mouse_coordinates is not None:
+            # If the mouse pointer is inside the Canvas
+            if (self._context.get_view().get_main_window().get_canvas().
+                    get_mouse_coordinates() is not None):
     
                 # Set building trail line color
                 self._context.get_brush().set_color(
@@ -1069,55 +1077,70 @@ class EditingBuildingState(ActionState):
                     cairo_context, self.__get_trail_line())
 
                 # Draw root DelimiterPoint
-                self.draw_delimiter_point(
-                    cairo_context, CanvasModel.get_instance().get_root_delimiter_point())
+                CanvasEditingState.get_instance().draw_delimiter_point(
+                    cairo_context, 
+                    CanvasModel.get_instance().get_root_delimiter_point()
+                )
 
     ''' Builds and returns the trail line to be drawn. '''
     def __get_trail_line(self):
 
         line = []
-        # First point is root DelimiterPoint coordinates 
-        line.append(CanvasModel.get_instance().get_root_delimiter_point().get_coordinates())
+        # First point is the root DelimiterPoint coordinates 
+        line.append(CanvasModel.get_instance().get_root_delimiter_point().
+            get_coordinates())
 
-        if CanvasModel.get_instance().get_anchored_delimiter_point() is not None:               
-            line.append(
-                CanvasModel.get_instance().get_anchored_delimiter_point().get_coordinates())
+        # Second point of the line is the anchored DelimiterPoint coordinates
+        # or the mouse pointer coordinates if this first does not exist
+        if (CanvasModel.get_instance().get_anchored_delimiter_point() is
+                not None):               
+            line.append(CanvasModel.get_instance().
+                get_anchored_delimiter_point().get_coordinates())
         else:  
-            line.append(self._context.get_view().get_main_window().get_canvas().get_mouse_coordinates())
+            line.append(self._context.get_view().get_main_window().
+                get_canvas().get_mouse_coordinates())
 
         return line
         
     ''' Draws the DelimiterPoint at mouse location. '''
     def __draw_mouse_pointer_delimiter_point(self, cairo_context):
 
-        # Mouse is inside the DrawingArea
-        if self._context.get_view().get_main_window().get_canvas().get_mouse_coordinates() is not None:
-
-            # No anchored DelimiterPoint
-            if CanvasModel.get_instance().get_anchored_delimiter_point() is None:
-                    
-                coordinates = self._context.get_view().get_main_window().get_canvas().get_mouse_coordinates()
-                self._context.get_brush().set_color(
-                    self.__state.get_color())
+        coordinates = self._context.get_view().get_main_window().\
+            get_canvas().get_mouse_coordinates()
+            
+        # Mouse pointer is inside the DrawingArea
+        if coordinates is not None:
 
             # A DelimiterPoint is anchored
-            else:
+            if (CanvasModel.get_instance().get_anchored_delimiter_point()
+                    is not None):
+                    
+                coordinates = CanvasModel.get_instance().\
+                    get_anchored_delimiter_point().get_coordinates()
+                self._context.get_brush().set_color(CanvasModel.get_instance().
+                    get_anchored_delimiter_point_color())
 
-                coordinates = self.get_anchored_delimiter_point().\
-                                  get_coordinates()
+            # No anchored DelimiterPoint
+            else:
+            
                 self._context.get_brush().set_color(
-                    CanvasModel.get_instance().get_anchored_delimiter_point_color())
+                    self.__state.get_color())
 
             # Draw mouse pointer DelimiterPoint
             self._context.get_brush().draw_delimiter_point(
                 cairo_context, coordinates,
-                CanvasModel.DELIMITER_POINT_SIZE)
+                CanvasModel.DELIMITER_POINT_SIZE
+            )
 
- 
-        
+       
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 # 	                                Methods                                   #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+
+    ''' Makes the Building buttons sensitive. '''
+    def update_buttons_sensitivity(self):
+        self._context.get_build_tail_contour_button().set_sensitive(True)
+        self._context.get_build_head_contour_button().set_sensitive(True)
 
     ''' State transition to BuildingTailContourState. '''
     def transition_to_building_tail_contour_state(self, context):
@@ -1127,12 +1150,7 @@ class EditingBuildingState(ActionState):
     def transition_to_building_head_contour_state(self, context):
         self.__state = BuildingHeadContourState(context)
 
-    ''' Makes the Building buttons sensitive. '''
-    def update_buttons_sensitivity(self):
-        self._context.get_build_tail_contour_button().set_sensitive(True)
-        self._context.get_build_head_contour_button().set_sensitive(True)   
-        
-        
+      
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 #                                                                             #
@@ -1140,18 +1158,18 @@ class EditingBuildingState(ActionState):
 #                                                                             #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 
-class BuildingContourState(ActionState):
+class BuildingContourState(CanvasState):
 
     '''
-        The BuildingContourState class.
+        The BuildingContourState class. Extends CanvasState.
     '''
 
     ''' Initialization method. '''
     def __init__(self, context):
 
-        # Parent constructor
+        # CanvasState constructor
         super().__init__(context)
-        
+        # Initialization behaviour
         self.__initialize()
 
     ''' Initialization behaviour. '''
@@ -1160,27 +1178,30 @@ class BuildingContourState(ActionState):
         CanvasModel.get_instance().set_root_delimiter_point(None)
         CanvasModel.get_instance().set_anchored_delimiter_point(None)
       
-    ''' Restart behaviour. '''
-    def restart(self):
-        self.__initialize()
-        
-    ''' Returns the color for drawing. '''    
-    def get_color(self):
-        return self.BUILDER.get_color()
- 
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
-# 	                          ActionState Methods                             #
+# 	                      CanvasState Implementation                          #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 
-    ''' On mouse motion behaviour. '''
+    ''' CanvasState.on_mouse_motion() implementation method. '''
     def on_mouse_motion(self, event):
 
         # See if a DelimiterPoint should be anchored
-        self.BUILDER.set_anchored_delimiter_point_method(event)
+        self.builder.set_anchored_delimiter_point_method(event)
+    
+    ''' CanvasState.on_mouse_click() implementation method. '''
+    def on_mouse_click(self, event):
+    
+        # Left click
+        if event.button == MouseButtons.LEFT_BUTTON:
+            self.__left_mouse_button_click(event)
+
+        # Right click
+        elif event.button == MouseButtons.RIGHT_BUTTON:
+            self.__right_mouse_button_click(event)    
         
     ''' Left mouse button click behaviour. '''
-    def left_mouse_button_click(self, event):
+    def __left_mouse_button_click(self, event):
 
         mouse_coordinates = (int(event.x), int(event.y))
 
@@ -1188,7 +1209,8 @@ class BuildingContourState(ActionState):
         if CanvasModel.get_instance().get_root_delimiter_point() is not None:
 
             # Mouse is anchored to a DelimiterPoint
-            if CanvasModel.get_instance().get_anchored_delimiter_point() is not None:  
+            if (CanvasModel.get_instance().get_anchored_delimiter_point() is 
+                    not None):  
           
                 self.click_on_anchored_point_with_root()
 
@@ -1200,7 +1222,8 @@ class BuildingContourState(ActionState):
         else:
 
             # Mouse is anchored to a DelimiterPoint
-            if CanvasModel.get_instance().get_anchored_delimiter_point() is not None:
+            if (CanvasModel.get_instance().get_anchored_delimiter_point() is 
+                    not None):
 
                 self.click_on_anchored_point_with_no_root() 
          
@@ -1208,18 +1231,22 @@ class BuildingContourState(ActionState):
             else:
                 self.free_click_with_no_root(mouse_coordinates)
 
-        if self._context.get_active_sample_comet_being_edited_id() is not None:
-            
-            self._context.update_save_button_sensitivity()
-            self._context.set_comet_being_edited_has_changed(True)
-
     ''' Right mouse button click behaviour. '''
-    def right_mouse_button_click(self, event):
+    def __right_mouse_button_click(self, event):
         self.__initialize()
+
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 # 	                                Methods                                   #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #     
+        
+    ''' Restart behaviour. '''
+    def restart(self):
+        self.__initialize()
+        
+    ''' Returns the color for drawing. '''    
+    def get_color(self):
+        return self.builder.get_color()    
         
     ''' 
         Left mouse button click behaviour when a DelimiterPoint is root and a
@@ -1228,14 +1255,14 @@ class BuildingContourState(ActionState):
     def click_on_anchored_point_with_root(self):
 
         # Anchored DelimiterPoint is of same type
-        if CanvasModel.get_instance().get_anchored_delimiter_point().get_type() == \
-                                                              self.BUILDER.POINT_TYPE:
+        if (CanvasModel.get_instance().get_anchored_delimiter_point().
+                get_type() == self.builder.POINT_TYPE):
 
             self.anchored_point_with_root_is_same_type()
               
         # Anchored DelimiterPoint is of different type
         else:
-                
+        
             self.anchored_point_with_root_is_different_type()    
         
     ''' 
@@ -1245,7 +1272,7 @@ class BuildingContourState(ActionState):
 
         # Connect points
         self._context.connect_delimiter_points_use_case(
-            self.BUILDER,
+            self.builder,
             CanvasModel.get_instance().get_root_delimiter_point(),
             CanvasModel.get_instance().get_anchored_delimiter_point()
         )
@@ -1257,12 +1284,14 @@ class BuildingContourState(ActionState):
 
         # Create a new DelimiterPoint on anchored DelimiterPoint
         # coordinates and connect with the root        
-        delimiter_point = self._context.create_and_connect_delimiter_point_use_case(
-            self.BUILDER, 
-            CanvasModel.get_instance().get_root_delimiter_point(),
-            CanvasModel.get_instance().get_anchored_delimiter_point().get_coordinates(),
-            make_roommate=True
-        )
+        delimiter_point = \
+            self._context.create_and_connect_delimiter_point_use_case(
+                self.builder, 
+                CanvasModel.get_instance().get_root_delimiter_point(),
+                CanvasModel.get_instance().get_anchored_delimiter_point(
+                    ).get_coordinates(),
+                CanvasModel.get_instance().get_anchored_delimiter_point()
+            )
             
         # New created DelimiterPoint is now the root
         CanvasModel.get_instance().set_root_delimiter_point(delimiter_point)    
@@ -1274,8 +1303,8 @@ class BuildingContourState(ActionState):
     def click_on_anchored_point_with_no_root(self):
           
         # The DelimiterPoint is of same type
-        if CanvasModel.get_instance().get_anchored_delimiter_point().get_type() == \
-                                                      self.BUILDER.POINT_TYPE:    
+        if (CanvasModel.get_instance().get_anchored_delimiter_point().
+                get_type() == self.builder.POINT_TYPE):    
                   
             self.anchored_point_with_no_root_is_same_type()
                         
@@ -1288,19 +1317,21 @@ class BuildingContourState(ActionState):
         Behaviour when the anchored point is from the same type.
     '''
     def anchored_point_with_no_root_is_same_type(self):
+    
         # Select anchored DelimiterPoint        
-        self.BUILDER.select_anchored_delimiter_point()
+        self.builder.select_anchored_delimiter_point()
 
     ''' 
-        Behaviour when the anchored point is from a different type.
+        Behaviour when the anchored point is from different type.
     '''
     def anchored_point_with_no_root_is_different_type(self):
 
         # Create a new DelimiterPoint on anchored DelimiterPoint coordinates
         delimiter_point = self._context.create_delimiter_point_use_case(
-            self.BUILDER,
-            CanvasModel.get_instance().get_anchored_delimiter_point().get_coordinates(),
-            make_roommate=True
+            self.builder,
+            CanvasModel.get_instance().get_anchored_delimiter_point(
+                ).get_coordinates(),
+            CanvasModel.get_instance().get_anchored_delimiter_point()
         )
 
         # New DelimiterPoint is root           
@@ -1308,16 +1339,18 @@ class BuildingContourState(ActionState):
         # No anchored delimiter point anymore
         CanvasModel.get_instance().set_anchored_delimiter_point(None)
 
-    ''' Behaviour when a point is root and there is no anchored points. '''
+    ''' Behaviour when a point is root and there are no anchored points. '''
     def free_click_with_root(self, mouse_coordinates):
 
         # Create a new DelimiterPoint on given coordinates and connect it
-        # with the root        
-        delimiter_point = self._context.create_and_connect_delimiter_point_use_case(
-            self.BUILDER, 
-            CanvasModel.get_instance().get_root_delimiter_point(),
-            mouse_coordinates
-        )    
+        # with the root DelimiterPoint        
+        delimiter_point = (
+            self._context.create_and_connect_delimiter_point_use_case(
+                self.builder, 
+                CanvasModel.get_instance().get_root_delimiter_point(),
+                mouse_coordinates
+            )
+        )
         
         # New created DelimiterPoint is now the root
         CanvasModel.get_instance().set_root_delimiter_point(delimiter_point)
@@ -1325,13 +1358,13 @@ class BuildingContourState(ActionState):
     ''' Behaviour when there is neither root point nor anchored point. '''
     def free_click_with_no_root(self, mouse_coordinates):
       
-        # Create a new DelimiterPoint
+        # Create a new DelimiterPoint on given coordinates
         delimiter_point = self._context.create_delimiter_point_use_case(
-            self.BUILDER,
+            self.builder,
             mouse_coordinates
         )
   
-        # New delimiter point is now the root
+        # New DelimiterPoint is now the root
         CanvasModel.get_instance().set_root_delimiter_point(delimiter_point)
              
 
@@ -1351,11 +1384,11 @@ class BuildingTailContourState(BuildingContourState):
     ''' Initialization method. '''
     def __init__(self, context):
 
-        # State constructor
+        # BuildingContourState constructor
         super().__init__(context)
         
-        # Constants
-        self.BUILDER = TailContourBuilder.get_instance()
+        # Attributes
+        self.builder = TailContourBuilder.get_instance()
        
        
 
@@ -1374,31 +1407,14 @@ class BuildingHeadContourState(BuildingContourState):
     ''' Initialization method. '''
     def __init__(self, context):
 
-        # State constructor
+        # BuildingContourState constructor
         super().__init__(context)
         
-        # Constants
-        self.BUILDER = HeadContourBuilder.get_instance()
+        # Attributes
+        self.builder = HeadContourBuilder.get_instance()
 
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-     

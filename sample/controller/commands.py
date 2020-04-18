@@ -47,7 +47,7 @@ class Command(object):
 
     ''' Undo Command method. '''
     def undo(self, *args):
-        raise NotImplementedError("This method must be implemented.")
+        raise NotImplementedError("This method must be implemented.")    
         
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
@@ -72,7 +72,7 @@ class Command(object):
     def set_string(self, string):
         self.__string = string
 
-    
+
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 #                                                                             #
@@ -645,59 +645,113 @@ class EditCometContoursCommand(Command):
 
     ''' Command.execute() behaviour. '''
     def execute(self):
-    
-        # Retrieve data
-        (sample_id, comet_id, 
-         tail_canvas_contour_dict,
-         head_canvas_contour_dict,
-         scale_ratio) = self._data
-    
-        # Activate Sample
-        self._controller.activate_sample(sample_id)
+        
+        # Activate Sample if needed
+        if self._controller.get_active_sample_id() != self._data.get_sample_id():
+            self._controller.activate_sample(self._data.get_sample_id())
         
         # Select Comet
-        self._controller.select_comet(sample_id, comet_id)
+        self._controller.select_comet(
+            self._data.get_sample_id(), self._data.get_comet_id())
         
-        # Scale CanvasContours if needed
+        # Scale the CanvasContours dicts if needed
         current_scale_ratio = self._controller.get_sample_zoom_value(
-            sample_id)
-        if scale_ratio != current_scale_ratio:
+            self._data.get_sample_id())
+        if self._data.get_scale_ratio() != current_scale_ratio:
         
-            # Scale ratio to scale the CanvasContours
-            scale_ratio = current_scale_ratio / scale_ratio
-        
-            # Scale the CanvasContours
             utils.scale_canvas_contour_dict(
-                tail_canvas_contour_dict, scale_ratio)
+                self._data.get_tail_canvas_contour_dict(),
+                current_scale_ratio / self._data.get_scale_ratio()
+            )
+                
             utils.scale_canvas_contour_dict(
-                head_canvas_contour_dict, scale_ratio)
+                self._data.get_head_canvas_contour_dict(),
+                current_scale_ratio / self._data.get_scale_ratio()
+            )
+            
+            self._data.set_scale_ratio(current_scale_ratio)
                      
         # Set the Comet as being edited
         self._controller.start_comet_being_edited(
-            sample_id, comet_id,
-            copy.deepcopy(tail_canvas_contour_dict),
-            copy.deepcopy(head_canvas_contour_dict)
+            self._data.get_sample_id(), self._data.get_comet_id(),
+            copy.deepcopy(self._data.get_tail_canvas_contour_dict()),
+            copy.deepcopy(self._data.get_head_canvas_contour_dict())
         )
         
-        self._data = (sample_id, comet_id, tail_canvas_contour_dict,
-                      head_canvas_contour_dict, current_scale_ratio)
-
     ''' Command.undo() behaviour. '''
     def undo(self):
-
-        # Retrieve data
-        (sample_id, comet_id, _, _, _) = self._data
         
-        # Activate Sample
-        self._controller.activate_sample(sample_id)
+        # Activate Sample if needed
+        if self._controller.get_active_sample_id() != self._data.get_sample_id():
+            self._controller.activate_sample(self._data.get_sample_id())
         
         # Set Comet as not being edited
         self._controller.quit_comet_being_edited()
         
         # Select Comet
-        self._controller.select_comet(sample_id, comet_id)
+        self._controller.select_comet(
+            self._data.get_sample_id(), self._data.get_comet_id())
         
 
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+#                                                                             #
+#   EditCometContoursCommandData                                              #
+#                                                                             #
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+
+class EditCometContoursCommandData(object):
+
+    '''
+        The EditCometContoursCommandData class.
+    '''
+
+    ''' Initialization method. '''
+    def __init__(self, sample_id, comet_id, tail_canvas_contour_dict,
+            head_canvas_contour_dict, scale_ratio):
+        
+        self.__sample_id = sample_id
+        self.__comet_id = comet_id
+        self.__tail_canvas_contour_dict = tail_canvas_contour_dict
+        self.__head_canvas_contour_dict = head_canvas_contour_dict
+        self.__scale_ratio = scale_ratio
+
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+#                             Getters & Setters                               #
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #   
+   
+    def get_sample_id(self):
+        return self.__sample_id
+        
+    def set_sample_id(self, sample_id):
+        self.__sample_id = sample_id
+        
+    def get_comet_id(self):
+        return self.__comet_id
+        
+    def set_comet_id(self, comet_id):
+        self.__comet_id = comet_id
+
+    def get_tail_canvas_contour_dict(self):
+        return self.__tail_canvas_contour_dict
+        
+    def set_tail_canvas_contour_dict(self, tail_canvas_contour_dict):
+        self.__tail_canvas_contour_dict = tail_canvas_contour_dict
+        
+    def get_head_canvas_contour_dict(self):
+        return self.__head_canvas_contour_dict
+        
+    def set_head_canvas_contour_dict(self, head_canvas_contour_dict):
+        self.__head_canvas_contour_dict = head_canvas_contour_dict
+
+    def get_scale_ratio(self):
+        return self.__scale_ratio
+        
+    def set_scale_ratio(self, scale_ratio):
+        self.__scale_ratio = scale_ratio
+ 
+ 
  
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 #                                                                             #
@@ -708,7 +762,7 @@ class EditCometContoursCommand(Command):
 class CancelEditCometContoursCommand(Command):
 
     '''
-        The CancelEditCometContoursCommand class. Extends from Command.
+        The CancelEditCometContoursCommand class. Extends Command.
     '''
 
     ''' Initialization method. '''
@@ -718,35 +772,104 @@ class CancelEditCometContoursCommand(Command):
     ''' Command.execute() behaviour. '''
     def execute(self):
     
-        # Retrieve data
-        sample_id = self._data[0] 
-        
-        # Activate Sample
-        if self._controller.get_active_sample_id() != sample_id:
-            self._controller.activate_sample(sample_id)
+        # Activate Sample if needed
+        if self._controller.get_active_sample_id() != self._data.get_sample_id():
+            self._controller.activate_sample(self._data.get_sample_id())
         
         # Quit Comet being edited
         self._controller.quit_comet_being_edited()
 
     ''' Command.undo() behaviour. '''
     def undo(self):
-          
-        # Retrieve data
-        (sample_id, comet_id, 
-         tail_canvas_contour_dict,
-         head_canvas_contour_dict) = self._data
-         
-        # Activate Sample
-        if self._controller.get_active_sample_id() != sample_id:
-            self._controller.activate_sample(sample_id) 
+                   
+        # Activate Sample if needed
+        if self._controller.get_active_sample_id() != self._data.get_sample_id():
+            self._controller.activate_sample(self._data.get_sample_id())
+
+        current_scale_ratio = self._controller.get_sample_zoom_value(
+            self._data.get_sample_id())
+        # Scale the CanvasContour dictionaries if needed
+        if self._data.get_scale_ratio() != current_scale_ratio:
         
+            utils.scale_canvas_contour_dict(
+                self._data.get_tail_canvas_contour_dict(),
+                current_scale_ratio / self._data.get_scale_ratio()
+            )
+            
+            utils.scale_canvas_contour_dict(
+                self._data.get_head_canvas_contour_dict(),
+                current_scale_ratio / self._data.get_scale_ratio()
+            )
+        
+            # Update the scale_ratio attribute
+            self._data.set_scale_ratio(current_scale_ratio)
+            
         # Start Comet being edited  
         self._controller.start_comet_being_edited(
-            sample_id, comet_id,
-            tail_canvas_contour_dict,
-            head_canvas_contour_dict
+            self._data.get_sample_id(), self._data.get_comet_id(),
+            copy.deepcopy(self._data.get_tail_canvas_contour_dict()),
+            copy.deepcopy(self._data.get_head_canvas_contour_dict())
         )
         
+
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+#                                                                             #
+#   CancelEditCometContoursCommandData                                        #
+#                                                                             #
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+
+class CancelEditCometContoursCommandData(object):
+
+    '''
+        The CancelEditCometContoursCommandData class.
+    '''
+
+    ''' Initialization method. '''
+    def __init__(self, sample_id, comet_id, tail_canvas_contour_dict,
+            head_canvas_contour_dict, scale_ratio):
+        
+        self.__sample_id = sample_id
+        self.__comet_id = comet_id
+        self.__tail_canvas_contour_dict = tail_canvas_contour_dict
+        self.__head_canvas_contour_dict = head_canvas_contour_dict
+        self.__scale_ratio = scale_ratio
+
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+#                             Getters & Setters                               #
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #   
+   
+    def get_sample_id(self):
+        return self.__sample_id
+        
+    def set_sample_id(self, sample_id):
+        self.__sample_id = sample_id
+        
+    def get_comet_id(self):
+        return self.__comet_id
+        
+    def set_comet_id(self, comet_id):
+        self.__comet_id = comet_id
+
+    def get_tail_canvas_contour_dict(self):
+        return self.__tail_canvas_contour_dict
+        
+    def set_tail_canvas_contour_dict(self, tail_canvas_contour_dict):
+        self.__tail_canvas_contour_dict = tail_canvas_contour_dict
+        
+    def get_head_canvas_contour_dict(self):
+        return self.__head_canvas_contour_dict
+        
+    def set_head_canvas_contour_dict(self, head_canvas_contour_dict):
+        self.__head_canvas_contour_dict = head_canvas_contour_dict
+
+    def get_scale_ratio(self):
+        return self.__scale_ratio
+        
+    def set_scale_ratio(self, scale_ratio):
+        self.__scale_ratio = scale_ratio
+
 
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
@@ -758,74 +881,148 @@ class CancelEditCometContoursCommand(Command):
 class UpdateCometContoursCommand(Command):
 
     '''
-        The UpdateCometContoursCommand class. Extends from Command.
+        The UpdateCometContoursCommand class. Extends Command.
     '''
 
     ''' Initialization method. '''
     def __init__(self, controller):
         super().__init__(controller)
 
-    ''' Command.execute() behaviour. '''
+    ''' Command.execute() implementation method. '''
     def execute(self):                          
         
-        # Retrieve data
-        (sample_id, comet_id, tail_contour, head_contour,
-         tail_canvas_contour_dict,
-         head_canvas_contour_dict) = self._data
-        
-        # Activate Sample
-        if self._controller.get_active_sample_id() != sample_id:
-            self._controller.activate_sample(sample_id)
+        # Activate Sample if needed
+        if (self._controller.get_active_sample_id() != self._data.
+                get_sample_id()):
+            self._controller.activate_sample(self._data.get_sample_id())
          
         # Quit Comet being edited
         self._controller.quit_comet_being_edited()
 
         # Update Comet contours
-        (_, 
-         previous_tail_contour,
-         previous_head_contour) = self._controller.update_comet_contours(
-                                      sample_id, comet_id, tail_contour, head_contour)
-        
-        # Save data
-        self._data = (sample_id, comet_id, previous_tail_contour, 
-             previous_head_contour, tail_canvas_contour_dict,
-             head_canvas_contour_dict)
-        
-         
+        self._controller.update_comet_contours(
+            self._data.get_sample_id(), self._data.get_comet_id(),
+            self._data.get_opencv_tail_contour(),
+            self._data.get_opencv_head_contour()
+        )
 
-    ''' Command.undo() behaviour. '''
+    ''' Command.undo() implementation method. '''
     def undo(self):
-    
-        # Retrieve data
-        (sample_id, comet_id, tail_contour, head_contour,
-         tail_canvas_contour_dict,
-         head_canvas_contour_dict) = self._data
          
-        # Activate Sample
-        if self._controller.get_active_sample_id() != sample_id:
-            self._controller.activate_sample(sample_id) 
+        # Activate Sample if needed
+        if (self._controller.get_active_sample_id() != self._data.
+                get_sample_id()):
+            self._controller.activate_sample(self._data.get_sample_id()) 
+         
+        
+        current_scale_ratio = self._controller.get_sample_zoom_value(
+            self._data.get_sample_id())
+        # Scale the CanvasContour dictionaries if needed
+        if self._data.get_scale_ratio() != current_scale_ratio:
+        
+            utils.scale_canvas_contour_dict(
+                self._data.get_tail_canvas_contour_dict(),
+                current_scale_ratio / self._data.get_scale_ratio()
+            )
+            
+            utils.scale_canvas_contour_dict(
+                self._data.get_head_canvas_contour_dict(),
+                current_scale_ratio / self._data.get_scale_ratio()
+            )
+        
+            # Update the scale_ratio attribute
+            self._data.set_scale_ratio(current_scale_ratio)
          
         # Start Comet being edited  
         self._controller.start_comet_being_edited(
-            sample_id, comet_id,
-            tail_canvas_contour_dict,
-            head_canvas_contour_dict
+            self._data.get_sample_id(), self._data.get_comet_id(),
+            copy.deepcopy(self._data.get_tail_canvas_contour_dict()),
+            copy.deepcopy(self._data.get_head_canvas_contour_dict())
         )
         
         # Update Comet contours
-        (comet_id, 
-         previous_tail_contour,
-         previous_head_contour) = self._controller.update_comet_contours(
-                                      sample_id, comet_id, tail_contour, head_contour)
-        
-        # Save data
-        self._data = (sample_id, comet_id, previous_tail_contour, 
-             previous_head_contour, tail_canvas_contour_dict,
-             head_canvas_contour_dict)
+        self._controller.update_comet_contours(
+            self._data.get_sample_id(), self._data.get_comet_id(),
+            self._data.get_opencv_tail_contour(),
+            self._data.get_opencv_head_contour()
+        )
         
 
-      
+ 
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+#                                                                             #
+#   UpdateCometContoursCommandData                                            #
+#                                                                             #
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 
+class UpdateCometContoursCommandData(object):
+
+    '''
+        The UpdateCometContoursCommandData class.
+    '''
+
+    ''' Initialization method. '''
+    def __init__(self, sample_id, comet_id, opencv_tail_contour,
+            opencv_head_contour, tail_canvas_contour_dict,
+            head_canvas_contour_dict, scale_ratio):
+        
+        self.__sample_id = sample_id
+        self.__comet_id = comet_id
+        self.__opencv_tail_contour = opencv_tail_contour
+        self.__opencv_head_contour = opencv_head_contour
+        self.__tail_canvas_contour_dict = tail_canvas_contour_dict
+        self.__head_canvas_contour_dict = head_canvas_contour_dict
+        self.__scale_ratio = scale_ratio
+
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+#                             Getters & Setters                               #
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #   
+   
+    def get_sample_id(self):
+        return self.__sample_id
+        
+    def set_sample_id(self, sample_id):
+        self.__sample_id = sample_id
+        
+    def get_comet_id(self):
+        return self.__comet_id
+        
+    def set_comet_id(self, comet_id):
+        self.__comet_id = comet_id
+        
+    def get_opencv_tail_contour(self):
+        return self.__opencv_tail_contour
+        
+    def set_opencv_tail_contour(self, opencv_tail_contour):
+        self.__opencv_tail_contour = opencv_tail_contour
+        
+    def get_opencv_head_contour(self):
+        return self.__opencv_head_contour
+        
+    def set_opencv_head_contour(self, opencv_head_contour):
+        self.__opencv_head_contour = opencv_head_contour
+
+    def get_tail_canvas_contour_dict(self):
+        return self.__tail_canvas_contour_dict
+        
+    def set_tail_canvas_contour_dict(self, tail_canvas_contour_dict):
+        self.__tail_canvas_contour_dict = tail_canvas_contour_dict
+        
+    def get_head_canvas_contour_dict(self):
+        return self.__head_canvas_contour_dict
+        
+    def set_head_canvas_contour_dict(self, head_canvas_contour_dict):
+        self.__head_canvas_contour_dict = head_canvas_contour_dict
+
+    def get_scale_ratio(self):
+        return self.__scale_ratio
+        
+    def set_scale_ratio(self, scale_ratio):
+        self.__scale_ratio = scale_ratio
+        
+
+   
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 #                                                                             #
 #   CreateDelimiterPointCommand                                               #
@@ -835,7 +1032,7 @@ class UpdateCometContoursCommand(Command):
 class CreateDelimiterPointCommand(Command):
 
     '''
-        The CreateDelimiterPointCommand class. Extends from Command.
+        The CreateDelimiterPointCommand class. Extends Command.
     '''
 
     ''' Initialization method. '''
@@ -900,6 +1097,8 @@ class CreateDelimiterPointCommand(Command):
         # Update Canvas
         self._controller.get_view().get_main_window().get_canvas().update()
         
+        if self._data.get_comet_being_edited_has_changed() is not None:    
+            self._controller.set_comet_being_edited_has_changed(True)
   
     ''' Command.undo() behaviour. '''
     def undo(self):
@@ -922,6 +1121,10 @@ class CreateDelimiterPointCommand(Command):
        
         # Update Canvas
         self._controller.get_view().get_main_window().get_canvas().update()
+        
+        if self._data.get_comet_being_edited_has_changed() is not None:    
+            self._controller.set_comet_being_edited_has_changed(
+                self._data.get_comet_being_edited_has_changed())
         
         
         
@@ -950,6 +1153,7 @@ class CreateDelimiterPointCommandData(object):
         self.__builder = builder
         self.__scale_ratio = scale_ratio
         self.__root_delimiter_point_id = None
+        self.__comet_being_edited_has_changed = None
         
 
         
@@ -1010,6 +1214,12 @@ class CreateDelimiterPointCommandData(object):
         
     def set_roommate(self, roommate):
         self.__roommate = roommate
+        
+    def get_comet_being_edited_has_changed(self):
+        return self.__comet_being_edited_has_changed
+        
+    def set_comet_being_edited_has_changed(self, comet_being_edited_has_changed):
+        self.__comet_being_edited_has_changed = comet_being_edited_has_changed
 
 
 
@@ -1055,6 +1265,9 @@ class DeleteDelimiterPointsCommand(Command):
                 
         # Delete the DelimiterPoints   
         self._controller.delete_delimiter_points(selected_delimiter_point_list)
+        
+        if self._data.get_comet_being_edited_has_changed() is not None:    
+            self._controller.set_comet_being_edited_has_changed(True)
     
     ''' Command.undo() behaviour. '''
     def undo(self):
@@ -1132,10 +1345,15 @@ class DeleteDelimiterPointsCommand(Command):
                             dst_delimiter_point,
                             canvas_contour_id
                         )
+                        
         if recalculate_coordinates: 
             self._data.set_scale_ratio(current_scale_ratio)
+            
+        if self._data.get_comet_being_edited_has_changed() is not None:    
+            self._controller.set_comet_being_edited_has_changed(
+                self._data.get_comet_being_edited_has_changed())
 
-
+        
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 #                                                                             #
@@ -1156,6 +1374,7 @@ class DeleteDelimiterPointsCommandData(object):
         self.__sample_id = sample_id
         self.__deleted_delimiter_point_data_dict = deleted_delimiter_point_data_dict
         self.__scale_ratio = scale_ratio
+        self.__comet_being_edited_has_changed = None
         
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
@@ -1181,6 +1400,12 @@ class DeleteDelimiterPointsCommandData(object):
         
     def set_scale_ratio(self, scale_ratio):
         self.__scale_ratio = scale_ratio
+        
+    def get_comet_being_edited_has_changed(self):
+        return self.__comet_being_edited_has_changed 
+
+    def set_comet_being_edited_has_changed(self, comet_being_edited_has_changed):
+        self.__comet_being_edited_has_changed = comet_being_edited_has_changed        
 
 
 
@@ -1240,8 +1465,8 @@ class DeletedDelimiterPointData(object):
         
     def set_builder(self, builder):
         self.__builder = builder
-
-
+        
+        
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 #                                                                             #
@@ -1287,6 +1512,9 @@ class ConnectDelimiterPointsCommand(Command):
             self._data.get_new_canvas_contour_id()
         )
         
+        if self._data.get_comet_being_edited_has_changed() is not None:    
+            self._controller.set_comet_being_edited_has_changed(True)
+        
     ''' Command.undo() behaviour. '''
     def undo(self):
     
@@ -1316,6 +1544,10 @@ class ConnectDelimiterPointsCommand(Command):
             self._data.get_previous_dst_delimiter_point_canvas_contour_id() 
         )
 
+        if self._data.get_comet_being_edited_has_changed() is not None:    
+            self._controller.set_comet_being_edited_has_changed(
+                self._data.get_comet_being_edited_has_changed())
+
 
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
@@ -1344,6 +1576,7 @@ class ConnectDelimiterPointsCommandData(object):
         self.__previous_dst_delimiter_point_canvas_contour_id = \
             previous_dst_delimiter_point_canvas_contour_id
         self.__new_canvas_contour_id = new_canvas_contour_id
+        self.__comet_being_edited_has_changed = None
         
       
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
@@ -1395,19 +1628,25 @@ class ConnectDelimiterPointsCommandData(object):
         
     def set_new_canvas_contour_id(self, new_canvas_contour_id):
         self.__new_canvas_contour_id = new_canvas_contour_id
+     
+    def get_comet_being_edited_has_changed(self):
+        return self.__comet_being_edited_has_changed
+        
+    def set_comet_being_edited_has_changed(self, comet_being_edited_has_changed):
+        self.__comet_being_edited_has_changed = comet_being_edited_has_changed
         
         
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 #                                                                             #
-#   CanvasContourClosedCommand                                                #
+#   CloseCanvasContourCommand                                                 #
 #                                                                             #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 
-class CanvasContourClosedCommand(Command):
+class CloseCanvasContourCommand(Command):
 
     '''
-        TailCanvasContourClosedCommand command. Extends Command.
+        CloseCanvasContourCommand command. Extends Command.
     '''
 
     ''' Initialization method. '''
@@ -1417,35 +1656,108 @@ class CanvasContourClosedCommand(Command):
     ''' Command.execute() behaviour. '''
     def execute(self):
     
-        self.__replace_delimiter_point_dict()
+        self.__replace_delimiter_point_dict(True)
          
     ''' Command.undo() behaviour. '''
     def undo(self):
     
-        self.__replace_delimiter_point_dict()
+        self.__replace_delimiter_point_dict(
+            self._data.get_comet_being_edited_has_changed())
         
     ''' 
         Replaces the DelimiterPoint dict of the CanvasContour with given ID. 
     '''
-    def __replace_delimiter_point_dict(self):
-    
-        # Retrieve data
-        (sample_id, builder, previous_canvas_contour) = self._data
-        
+    def __replace_delimiter_point_dict(self, has_changed):
+            
         # Activate Sample if needed
-        if self._controller.get_active_sample_id() != sample_id:
-            self._controller.activate_sample(sample_id)
+        if self._controller.get_active_sample_id() != self._data.get_sample_id():
+            self._controller.activate_sample(self._data.get_sample_id())
             
         # Transition to CanvasEditingState       
         self._controller.canvas_transition_to_editing_state()
         
-        canvas_contour_copy = builder.get_contour_dict()[
-            previous_canvas_contour.get_id()]
-        builder.get_contour_dict()[previous_canvas_contour.get_id()] = \
-            copy.deepcopy(previous_canvas_contour)
+        # Scale CanvasContour if needed
+        current_scale_ratio = self._controller.get_sample_zoom_value(
+            self._data.get_sample_id())
             
-        self._data = (sample_id, builder, canvas_contour_copy)    
+        if self._data.get_scale_ratio() != current_scale_ratio:
+            utils.scale_canvas_contour(
+                self._data.get_canvas_contour(),
+                current_scale_ratio/self._data.get_scale_ratio()
+            )
+                                
+        canvas_contour_copy = self._data.get_builder().get_contour_dict()[
+            self._data.get_canvas_contour().get_id()]
             
+        self._data.get_builder().get_contour_dict()[
+            self._data.get_canvas_contour().get_id()] = \
+                copy.deepcopy(self._data.get_canvas_contour())
+            
+        self._data.set_scale_ratio(current_scale_ratio)
+        self._data.set_canvas_contour(canvas_contour_copy)
+
+        if self._data.get_comet_being_edited_has_changed() is not None:    
+            self._controller.set_comet_being_edited_has_changed(
+                has_changed)
+
+
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+#                                                                             #
+#   CloseCanvasContourCommandData                                             #
+#                                                                             #
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+
+class CloseCanvasContourCommandData(object):
+
+    '''
+        The CloseCanvasContourCommandData class.
+    '''
+
+    ''' Initialization method. '''
+    def __init__(self, sample_id, builder, canvas_contour, scale_ratio):
+
+        self.__sample_id = sample_id
+        self.__builder = builder
+        self.__canvas_contour = canvas_contour
+        self.__scale_ratio = scale_ratio
+        self.__comet_being_edited_has_changed = None
+
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+#                             Getters & Setters                               #
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+
+    def get_sample_id(self):
+        return self.__sample_id
+        
+    def set_sample_id(self, sample_id):
+        self.__sample_id = sample_id
+        
+    def get_builder(self):
+        return self.__builder
+        
+    def set_builder(self, builder):
+        self.__builder = builder
+        
+    def get_canvas_contour(self):
+        return self.__canvas_contour
+        
+    def set_canvas_contour(self, canvas_contour):
+        self.__canvas_contour = canvas_contour
+        
+    def get_scale_ratio(self):
+        return self.__scale_ratio
+        
+    def set_scale_ratio(self, scale_ratio):
+        self.__scale_ratio = scale_ratio
+        
+    def get_comet_being_edited_has_changed(self):
+        return self.__comet_being_edited_has_changed
+        
+    def set_comet_being_edited_has_changed(self, comet_being_edited_has_changed):
+        self.__comet_being_edited_has_changed = comet_being_edited_has_changed
+
 
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
@@ -1465,30 +1777,87 @@ class MoveDelimiterPointsCommand(Command):
         super().__init__(controller)
     
     ''' Command.execute() behaviour. '''
-    def execute(self):
-        self.__move_delimiter_points()
-        
+    def execute(self):    
+        self.__move_delimiter_points(True)
+               
     ''' Command.undo() behaviour. '''
-    def undo(self):
-        self.__move_delimiter_points()
-        
-    ''' Moves the DelimiterPoints to its origin. '''    
-    def __move_delimiter_points(self): 
+    def undo(self):   
+        self.__move_delimiter_points(
+            self._data.get_comet_being_edited_has_changed())
 
-        # Retrieve data
-        (sample_id, delimiter_point_selection, scale_ratio) = self._data
+    ''' Moves the DelimiterPoints to its origin. '''    
+    def __move_delimiter_points(self, has_changed): 
         
-        # Activate Sample
-        if self._controller.get_active_sample_id() != sample_id:
-            self._controller.activate_sample(sample_id)
+        # Activate Sample if needed
+        if self._controller.get_active_sample_id() != self._data.get_sample_id():
+            self._controller.activate_sample(self._data.get_sample_id())
             
         # Transition to CanvasEditingState       
         self._controller.canvas_transition_to_editing_state()
         
         # Move points to origin coordinates
-        new_scale_ratio = self._controller.move_delimiter_points_to_origin(
-            delimiter_point_selection, scale_ratio)
+        self._controller.move_delimiter_points_to_origin(
+            self._data.get_delimiter_point_selection(),
+            self._data.get_scale_ratio()
+        )
+        
+        # Set new scale ratio
+        self._data.set_scale_ratio(self._controller.
+            get_sample_zoom_value(self._data.get_sample_id()))
             
-        # Save data
-        self._data = (sample_id, delimiter_point_selection, new_scale_ratio)
+        if self._data.get_comet_being_edited_has_changed() is not None:    
+            self._controller.set_comet_being_edited_has_changed(
+                has_changed)
+  
 
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+#                                                                             #
+#   MoveDelimiterPointsCommandData                                            #
+#                                                                             #
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+
+class MoveDelimiterPointsCommandData(object):
+
+    '''
+        The MoveDelimiterPointsCommandData class. Extends 
+        CometBeingEditedData.
+    '''
+
+    ''' Initialization method. '''
+    def __init__(self, sample_id, delimiter_point_selection, scale_ratio):
+
+        self.__sample_id = sample_id
+        self.__delimiter_point_selection = delimiter_point_selection
+        self.__scale_ratio = scale_ratio
+        self.__comet_being_edited_has_changed = None
+
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+#                             Getters & Setters                               #
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+
+    def get_sample_id(self):
+        return self.__sample_id
+        
+    def set_sample_id(self, sample_id):
+        self.__sample_id = sample_id
+
+    def get_delimiter_point_selection(self):
+        return self.__delimiter_point_selection
+        
+    def set_delimiter_point_selection(self, delimiter_point_selection):
+        self.__delimiter_point_selection = delimiter_point_selection
+        
+    def get_scale_ratio(self):
+        return self.__scale_ratio
+        
+    def set_scale_ratio(self, scale_ratio):
+        self.__scale_ratio = scale_ratio
+        
+    def get_comet_being_edited_has_changed(self):
+        return self.__comet_being_edited_has_changed 
+
+    def set_comet_being_edited_has_changed(self, comet_being_edited_has_changed):
+        self.__comet_being_edited_has_changed = comet_being_edited_has_changed
+        
+        
