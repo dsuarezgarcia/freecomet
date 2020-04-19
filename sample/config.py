@@ -10,5 +10,5 @@ LOGO_ICO = 'sample/data/logo.png'
 LOCALEDIR = 'sample/data/locales'
 DOMAIN = 'base'
 
-CLASSIFIER_MODEL_FILENAME = 'classifier_model.joblib'
+CLASSIFIER_MODEL_FILENAME = 'sample/data/classifier_model.joblib'
 
