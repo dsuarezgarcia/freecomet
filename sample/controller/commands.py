@@ -1073,7 +1073,7 @@ class CreateDelimiterPointCommand(Command):
                 self._data.get_coordinates(),
                 self._data.get_delimiter_point_id(),
                 self._data.get_canvas_contour_id(),
-                self._data.get_roommate()
+                self._data.get_roommate().get_delimiter_point()
             ) 
           
         # 'Create and connect DelimiterPoint' use case
@@ -1091,7 +1091,7 @@ class CreateDelimiterPointCommand(Command):
                 root_delimiter_point,
                 self._data.get_coordinates(),
                 self._data.get_delimiter_point_id(),
-                self._data.get_roommate()
+                self._data.get_roommate().get_delimiter_point()
             ) 
                     
         # Update Canvas
@@ -1306,7 +1306,7 @@ class DeleteDelimiterPointsCommand(Command):
                     deleted_delimiter_point_data.get_coordinates(),
                     deleted_delimiter_point_data.get_delimiter_point_id(),
                     canvas_contour_id,
-                    deleted_delimiter_point_data.get_roommate()
+                    deleted_delimiter_point_data.get_roommate().get_delimiter_point()
                 )
                 
             # Set the CanvasContour 'closed' value

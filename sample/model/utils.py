@@ -317,6 +317,30 @@ def merge_contours(contour1, contour2):
                         contour_to_list(contour2))
     )
 
+def are_same_contours(image, contour1, contour2):
+
+    x1, y1, width1, height1 = create_enclosing_rectangle(contour1)
+    x2, y2, width2, height2 = create_enclosing_rectangle(contour2)
+    
+    if (x1 != x2) or (y1 != y2) or (width1 != width2) or (height1 != height2):
+        return False
+        
+    mask_image = numpy.zeros(shape=(image.shape[:-1]))  
+    mask_rect_image1 = numpy.copy(mask_image[y1:y1+height1, x1:x1+width1])
+    mask_rect_image2 = numpy.copy(mask_image[y1:y1+height1, x1:x1+width1])
+    
+    draw_contours(mask_rect_image1, [contour1])
+    draw_contours(mask_rect_image2, [contour2])
+    
+    if numpy.count_nonzero(mask_rect_image1) != numpy.count_nonzero(mask_rect_image2):
+        return False
+    
+    # Pixel count == 0 -> True
+    return (numpy.count_nonzero(mask_rect_image1 - mask_rect_image2) == 0)    
+    
+  
+
+
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 #                                   Geometry                                  #

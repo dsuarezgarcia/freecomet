@@ -4,13 +4,16 @@
     The classifier module.
 '''
 
- 
+# General imports
 import numpy
 
 import sklearn.tree
 from sklearn.model_selection import cross_val_score, train_test_split
 from sklearn.tree import export_text
 import pickle
+
+# Custom imports
+import sample.config as config
 
 class Classifier:
 
@@ -23,11 +26,9 @@ class Classifier:
 
 class DecisionTree(Classifier):
 
-    filename = 'model/classifier_model.joblib'
-
     def __init__(self):
         try:
-            self.dtc = pickle.load(open(self.filename, 'rb'))
+            self.dtc = pickle.load(open(config.CLASSIFIER_MODEL_FILENAME, 'rb'))
         except: 
             self.dtc = sklearn.tree.DecisionTreeClassifier()
             self.samples = self.__get_samples()
@@ -55,7 +56,7 @@ class DecisionTree(Classifier):
 
 
         self.dtc = self.dtc.fit(data_list, target_list)
-        pickle.dump(self.dtc, open(self.filename, 'wb'))
+        pickle.dump(self.dtc, open(config.CLASSIFIER_MODEL_FILENAME, 'wb'))
 
         '''
         cv = KFold(n_splits=5)
@@ -75,7 +76,7 @@ class DecisionTree(Classifier):
         print("Average accuracy: ", sum(fold_accuracy)/len(fold_accuracy))
         dot_data = StringIO()
 
-        #joblib.dump(self.dtc, self.filename) 
+        #joblib.dump(self.dtc, config.CLASSIFIER_MODEL_FILENAME) 
         '''
 
     def predict(self, sample):

@@ -752,7 +752,17 @@ class Controller(object):
 
                 index += 1
 
-        # Otherwise, the comet is built just with the Head contour
+        # Remove, if exist, the roommates of a non-closed tail CanvasContour 
+        # of the head CanvasContour
+        for delimiter_point in head_contour.get_delimiter_point_dict().values():
+        
+            if delimiter_point.get_roommate() is not None:
+                
+                delimiter_point.get_roommate().get_delimiter_point().\
+                    set_roommate(None)
+                delimiter_point.set_roommate(None)
+        
+        # The comet is built just with the Head contour
         return (head_contour, None)
           
     ''' 
@@ -1941,10 +1951,20 @@ class Controller(object):
                            utils.list_to_contour(coordinates_list),
                            scale_ratio
                        )
-                           
-        # Merge contours
+                    
+        
         if tail_contour is not None:
-            tail_contour = utils.merge_contours(tail_contour, head_contour) 
+        
+            if (utils.are_same_contours(
+                    self.__model.get_sample(self.__active_sample_id).get_image(),
+                    tail_contour, head_contour)):
+                    
+                tail_contour = None
+            
+            else:
+                
+                # Merge contours
+                tail_contour = utils.merge_contours(tail_contour, head_contour) 
 
         return self.add_new_comet_use_case(
             self.__active_sample_id, tail_contour, head_contour)

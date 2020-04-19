@@ -1424,6 +1424,8 @@ class View(Observer):
             set_visible(False)   
         self.__controller.canvas_transition_to_selection_state()
         self.__main_window.get_canvas().hide_editing_buttons()
+        self.__main_window.get_menubar().get_theme_clear_button().\
+            set_active(True)
         
     ''' Restarts components parameters. '''
     def restart(self):

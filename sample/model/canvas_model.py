@@ -873,10 +873,10 @@ class CometContourBuilder(metaclass=Singleton):
         canvas_contour.get_delimiter_point_dict()[
             delimiter_point.get_id()] = delimiter_point  
             
-        if roommate is not None and roommate.get_delimiter_point() is not None: 
+        if roommate is not None: 
             make_roommates(
                 delimiter_point,
-                roommate.get_delimiter_point()
+                roommate
             )
 
         return delimiter_point
