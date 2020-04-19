@@ -15,7 +15,7 @@ import cv2
 import numpy
 
 # Custom imports
-import model.constants as constants
+import sample.model.constants as constants
 
 
 

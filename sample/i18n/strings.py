@@ -4,10 +4,24 @@
     The strings module.
 '''
 
+# General imports
 import gettext
 
-es_lang = gettext.translation('base', localedir='locales', languages=['es'])
-en_lang = gettext.translation('base', localedir='locales', languages=['en'])
+# Custom imports
+import sample.config as config
+
+
+
+es_lang = gettext.translation(
+    domain=config.DOMAIN, 
+    localedir=config.LOCALEDIR,
+    languages=['es'])
+    
+en_lang = gettext.translation(
+    domain=config.DOMAIN,
+    localedir=config.LOCALEDIR,
+    languages=['en'])
+
 
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
@@ -39,6 +53,9 @@ class Strings(object):
         self.PREFERENCES_MENU_LANGUAGE_BUTTON_LABEL = _("Idioma")
         self.PREFERENCES_MENU_LANGUAGE_SPANISH_LANGUAGE_BUTTON_LABEL = _("Español")
         self.PREFERENCES_MENU_LANGUAGE_ENGLISH_LANGUAGE_BUTTON_LABEL = _("Inglés")
+        self.PREFERENCES_MENU_THEME_BUTTON_LABEL = _("Tema")
+        self.PREFERENCES_MENU_THEME_CLEAR_BUTTON_LABEL = _("Claro")
+        self.PREFERENCES_MENU_THEME_DARK_BUTTON_LABEL = _("Oscuro")
         self.HELP_MENU_ABOUT_BUTTON_LABEL = _("Acerca de")
 
         # ToolBar

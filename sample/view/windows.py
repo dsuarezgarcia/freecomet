@@ -6,12 +6,12 @@
 
 
 # Custom imports
-from view.menubar import MenuBar
-from view.toolbar import ToolBar
-from view.listview import SamplesView, AnalyzeSamplesView
-from view.canvas import Canvas
-from view.zoom_tool import ZoomTool
-from controller.algorithm_settings_dto import AlgorithmSettingsDto
+from sample.view.menubar import MenuBar
+from sample.view.toolbar import ToolBar
+from sample.view.listview import SamplesView, AnalyzeSamplesView
+from sample.view.canvas import Canvas
+from sample.view.zoom_tool import ZoomTool
+from sample.controller.algorithm_settings_dto import AlgorithmSettingsDto
 
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #

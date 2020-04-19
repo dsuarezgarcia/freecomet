@@ -9,35 +9,36 @@ import os
 import sys
 import copy
 import ntpath
-
+from pathvalidate import ValidationError, validate_filename
 
 # PyGObject imports
 import gi
 from gi.repository import GLib
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
 
 
 # Custom imports
-from pathvalidate import ValidationError, validate_filename
-from dialog_response import DialogResponse
-from singleton import Singleton
+from sample.dialog_response import DialogResponse
+from sample.singleton import Singleton
 
-from view.view_store import CometView, SampleParameters
+from sample.view.view_store import CometView, SampleParameters
 
-from controller.algorithm_settings_dto import AlgorithmSettingsDto
-from controller.canvas_state import CanvasSelectionState, CanvasEditingState, \
+from sample.controller.algorithm_settings_dto import AlgorithmSettingsDto
+from sample.controller.canvas_state import CanvasSelectionState, CanvasEditingState, \
     EditingSelectionState, BuildingTailContourState, BuildingHeadContourState
-from controller.threads import ThreadWithException
-import controller.commands as commands
+from sample.controller.threads import ThreadWithException
+import sample.controller.commands as commands
 
-import model.utils as utils
-from model.model import Model
-from model.sample import Sample
-from model.comet import Comet
-from model.canvas_model import CanvasModel, DelimiterPointType, \
+import sample.model.utils as utils
+from sample.model.model import Model
+from sample.model.sample import Sample
+from sample.model.comet import Comet
+from sample.model.canvas_model import CanvasModel, DelimiterPointType, \
     contours_are_nested, check_contour_is_closed, make_roommates
     
-from i18n.i18n import I18n
-from i18n.language import Language
+from sample.i18n.i18n import I18n
+from sample.i18n.language import Language
    
 
 
@@ -55,6 +56,13 @@ class Controller(object):
 
     ''' Initialization method. '''
     def __init__(self, model, view):
+    
+        # Settings
+        self.__settings = Gtk.Settings.get_default()
+        self.__settings.set_property("gtk-theme-name", "Adwaita")
+        self.__settings.set_property(
+            "gtk-application-prefer-dark-theme",
+            False)
     
         # i18n
         self.__i18n = I18n()
@@ -916,7 +924,16 @@ class Controller(object):
     
         # Update Canvas
         self.__view.get_main_window().get_canvas().update()
+       
+    ''' 'Set application clear theme' use case. '''       
+    def set_application_clear_theme_use_case(self):
+        self.__settings.set_property(
+            "gtk-application-prefer-dark-theme", False)
         
+    ''' 'Set application dark theme' use case. '''       
+    def set_application_dark_theme_use_case(self):
+        self.__settings.set_property(
+            "gtk-application-prefer-dark-theme", True)
 
     
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #

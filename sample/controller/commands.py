@@ -8,8 +8,8 @@
 import copy
 
 # Custom imports
-import model.utils as utils
-from model.canvas_model import CanvasModel, SelectedDelimiterPoint
+import sample.model.utils as utils
+from sample.model.canvas_model import CanvasModel, SelectedDelimiterPoint
 
 
 

@@ -12,15 +12,17 @@ from gi.repository import Gdk
 from gi.repository import GdkPixbuf
 
 # Custom imports
-from dialog_response import DialogResponse
-from view.windows import CometParametersWindow, MainSettingsWindow, SelectionWindow, \
+from sample.dialog_response import DialogResponse
+from sample.view.windows import CometParametersWindow, MainSettingsWindow, SelectionWindow, \
                     LoadSamplesWindow, AnalyzeSamplesWindow, MainWindow, \
                     AnalyzeSamplesLoadingWindow
-from view.view_store import ViewStore, SampleParameters
-from view.zoom_tool import ZoomTool
-from controller.algorithm_settings_dto import AlgorithmSettingsDto
-from observer import Observer
-from i18n.language import Language
+from sample.view.view_store import ViewStore, SampleParameters
+from sample.view.zoom_tool import ZoomTool
+from sample.controller.algorithm_settings_dto import AlgorithmSettingsDto
+from sample.observer import Observer
+from sample.i18n.language import Language
+
+import sample.config as config
 
 
 
@@ -35,8 +37,6 @@ class View(Observer):
     '''
         The View class. Implements Observer.
     '''
-    
-    UI_FILE = "view/application.ui"
  
     ''' The class initialization. '''
     def __init__(self):
@@ -71,9 +71,9 @@ class View(Observer):
         # [1] Load .ui file
         gtk_builder = Gtk.Builder()
         try:
-            gtk_builder.add_from_file(View.UI_FILE)
+            gtk_builder.add_from_file(config.UI_FILE)
         except:
-            print("ERROR: " + View.UI_FILE +" not found")
+            print("ERROR: " + config.UI_FILE + " not found")
             self.exit()
 
         # [2] Initialize GUI components
@@ -174,6 +174,10 @@ class View(Observer):
             "activate", self.__on_menubar_spanish_language_button_activated)
         menubar.get_english_language_button().connect(
             "activate", self.__on_menubar_english_language_button_activated)
+        menubar.get_theme_clear_button().connect(
+            "activate", self.__on_menubar_theme_clear_button_activated)
+        menubar.get_theme_dark_button().connect(
+            "activate", self.__on_menubar_theme_dark_button_activated)
         menubar.get_about_button().connect(
             "activate", self.__on_menubar_about_button_activated)
             
@@ -386,6 +390,12 @@ class View(Observer):
             strings.PREFERENCES_MENU_LANGUAGE_ENGLISH_LANGUAGE_BUTTON_LABEL)
         menubar.get_menu_help().set_label(
             strings.MENUBAR_HELP_BUTTON_LABEL)
+        menubar.get_menu_theme().set_label(
+            strings.PREFERENCES_MENU_THEME_BUTTON_LABEL)
+        menubar.get_theme_clear_button().set_label(
+            strings.PREFERENCES_MENU_THEME_CLEAR_BUTTON_LABEL)
+        menubar.get_theme_dark_button().set_label(
+            strings.PREFERENCES_MENU_THEME_DARK_BUTTON_LABEL)
         menubar.get_about_button().set_label(
             strings.HELP_MENU_ABOUT_BUTTON_LABEL)
 
@@ -744,6 +754,18 @@ class View(Observer):
 
         if radio_button.get_active():
             self.__controller.translate_app_to_english()
+      
+    ''' MenuBar 'Clear' tab 'activate' signall callback. '''      
+    def __on_menubar_theme_clear_button_activated(self, radio_button):
+    
+        if radio_button.get_active():
+            self.__controller.set_application_clear_theme_use_case()
+     
+    ''' MenuBar 'Dark' tab 'activate' signall callback. '''     
+    def __on_menubar_theme_dark_button_activated(self, radio_button):
+    
+        if radio_button.get_active():
+            self.__controller.set_application_dark_theme_use_case()             
 
     ''' MenuBar 'About' tab 'activate' signal callback. '''
     def __on_menubar_about_button_activated(self, menuitem):

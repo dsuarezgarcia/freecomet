@@ -16,11 +16,11 @@ import os
 
 
 # Custom imports
-import model.image_processing_facade as facade
-import model.utils as utils
-import model.constants as constants
-from singleton import Singleton
-from model.classifier import DecisionTree
+import sample.model.image_processing_facade as facade
+import sample.model.utils as utils
+import sample.model.constants as constants
+from sample.singleton import Singleton
+from sample.model.classifier import DecisionTree
 
 
 

@@ -37,6 +37,10 @@ class MenuBar(object):
             "spanish-language")
         self.__english_language_button = gtk_builder.get_object(
             "english-language")
+        self.__menu_theme = gtk_builder.get_object(
+            "menubar-preferences-theme")
+        self.__theme_clear_button = gtk_builder.get_object("theme-clear")
+        self.__theme_dark_button = gtk_builder.get_object("theme-dark")
 
         # Help tab
         self.__menu_help = gtk_builder.get_object("menubar-help")
@@ -106,6 +110,24 @@ class MenuBar(object):
 
     def set_english_language_button(self, english_language_button):
         self.__english_language_button = english_language_button
+
+    def get_menu_theme(self):
+        return self.__menu_theme
+        
+    def set_menu_theme(self, menu_theme):
+        self.__menu_theme = menu_theme
+        
+    def get_theme_clear_button(self):
+        return self.__theme_clear_button
+        
+    def set_theme_clear_button(self, theme_clear_button):
+        self.__theme_clear_button = theme_clear_button
+        
+    def get_theme_dark_button(self):
+        return self.__theme_dark_button
+
+    def set_theme_dark_button(self, theme_dark_button):
+        self.__theme_dark_button = theme_dark_button
 
     def get_menu_help(self):
         return self.__menu_help

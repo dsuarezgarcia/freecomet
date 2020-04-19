@@ -5,7 +5,7 @@
 '''
 
 # Custom imports
-from singleton import Singleton
+from sample.singleton import Singleton
 
 
 

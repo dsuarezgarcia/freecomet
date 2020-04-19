@@ -18,10 +18,10 @@ from gi.repository import Gdk
 from gi.repository import Gtk
 
 # Custom imports
-import model.utils as utils
-from singleton import Singleton
-from controller.buttons import MouseButtons
-from model.canvas_model import CanvasModel, DelimiterPointType, \
+import sample.model.utils as utils
+from sample.singleton import Singleton
+from sample.controller.buttons import MouseButtons
+from sample.model.canvas_model import CanvasModel, DelimiterPointType, \
     DelimiterPointSelection, SelectionArea, DelimiterPoint, CanvasContour, \
     SelectedDelimiterPoint, RequestedDelimiterPoint, TailContourBuilder, \
     HeadContourBuilder, union, see_anchoring_with_delimiter_point_list, \

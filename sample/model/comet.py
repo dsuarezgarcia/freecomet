@@ -9,7 +9,7 @@ import itertools
 import numpy
 
 # Custom imports
-import model.utils as utils
+import sample.model.utils as utils
 
 
 

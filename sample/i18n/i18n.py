@@ -8,8 +8,8 @@
 import locale
 
 # Custom imports
-from i18n.strings import Strings
-from i18n.language import Language
+from sample.i18n.strings import Strings
+from sample.i18n.language import Language
 
 
 

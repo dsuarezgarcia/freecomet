@@ -14,8 +14,8 @@ import skimage.filters
 import skimage.morphology
 
 # Custom imports
-import model.constants as constants
-import model.utils as utils
+import sample.model.constants as constants
+import sample.model.utils as utils
 
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #

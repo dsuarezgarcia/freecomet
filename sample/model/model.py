@@ -9,13 +9,13 @@ import ntpath
 import copy
 
 # Custom imports
-import model.utils as utils
-from model.canvas_model import CanvasModel
-from model.parser import Parser
-from model.algorithms import FreeComet, OpenComet
-from model.algorithm_settings import AlgorithmSettings
-from model.sample import Sample
-from model.comet import Comet
+import sample.model.utils as utils
+from sample.model.canvas_model import CanvasModel
+from sample.model.parser import Parser
+from sample.model.algorithms import FreeComet, OpenComet
+from sample.model.algorithm_settings import AlgorithmSettings
+from sample.model.sample import Sample
+from sample.model.comet import Comet
 
 
 

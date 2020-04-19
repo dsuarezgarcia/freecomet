@@ -17,8 +17,8 @@ from gi.repository import Gdk
 from gi.repository import GdkPixbuf
 
 # Custom imports
-import model.utils as utils
-from view.color_tool import ColorTool
+import sample.model.utils as utils
+from sample.view.color_tool import ColorTool
 
 
 

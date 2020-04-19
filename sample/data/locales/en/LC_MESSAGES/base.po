@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-03-17 02:03+0100\n"
+"POT-Creation-Date: 2020-04-19 20:21+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Diego Suárez García <d.suarez@udc.es>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,379 +17,395 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: i18n/strings.py:28
+#: i18n/strings.py:42
 msgid "Sin titulo"
 msgstr "No title"
 
-#: i18n/strings.py:31
+#: i18n/strings.py:45
 msgid "Archivo"
 msgstr "_File"
 
-#: i18n/strings.py:32
+#: i18n/strings.py:46
 msgid "Preferencias"
 msgstr "_Preferences"
 
-#: i18n/strings.py:33
+#: i18n/strings.py:47
 msgid "Ayuda"
 msgstr "_Help"
 
-#: i18n/strings.py:34 i18n/strings.py:45
+#: i18n/strings.py:48 i18n/strings.py:62
 msgid "Nuevo"
 msgstr "New"
 
-#: i18n/strings.py:35 i18n/strings.py:49 i18n/strings.py:161
+#: i18n/strings.py:49 i18n/strings.py:66 i18n/strings.py:178
 msgid "Abrir"
 msgstr "Open"
 
-#: i18n/strings.py:36 i18n/strings.py:47 i18n/strings.py:155
+#: i18n/strings.py:50 i18n/strings.py:64 i18n/strings.py:172
 msgid "Guardar"
 msgstr "Save"
 
-#: i18n/strings.py:37
+#: i18n/strings.py:51
 msgid "Guardar como"
 msgstr "Save as"
 
-#: i18n/strings.py:38
+#: i18n/strings.py:52
 msgid "Salir"
 msgstr "Exit"
 
-#: i18n/strings.py:39
+#: i18n/strings.py:53
 msgid "Idioma"
 msgstr "Language"
 
-#: i18n/strings.py:40
+#: i18n/strings.py:54
 msgid "Español"
 msgstr "Spanish"
 
-#: i18n/strings.py:41
+#: i18n/strings.py:55
 msgid "Inglés"
 msgstr "English"
 
-#: i18n/strings.py:42
+#: i18n/strings.py:56
+msgid "Tema"
+msgstr "Theme"
+
+#: i18n/strings.py:57
+msgid "Claro"
+msgstr "Clear"
+
+#: i18n/strings.py:58
+msgid "Oscuro"
+msgstr "Dark"
+
+#: i18n/strings.py:59
 msgid "Acerca de"
 msgstr "About"
 
-#: i18n/strings.py:46
+#: i18n/strings.py:63
 msgid "Crear un proyecto nuevo (Ctrl+N)"
 msgstr "Create a new project (Ctrl+N)"
 
-#: i18n/strings.py:48
+#: i18n/strings.py:65
 msgid "Guardar proyecto (Ctrl+S)"
 msgstr "Save current project (Ctrl+S)"
 
-#: i18n/strings.py:50
+#: i18n/strings.py:67
 msgid "Abrir un proyecto existente (Ctrl+O)"
 msgstr "Open an existing project (Ctrl+O)"
 
-#: i18n/strings.py:51
+#: i18n/strings.py:68
 msgid "Deshacer"
 msgstr "Undo"
 
-#: i18n/strings.py:52
-msgid "Deshacer última acción (Ctrl+Z)"
-msgstr "Undo last action (Ctrl+Z)"
+#: i18n/strings.py:69
+msgid "Deshacer {} (Ctrl+Z)"
+msgstr "Undo {} (Ctrl+Z)"
 
-#: i18n/strings.py:53
+#: i18n/strings.py:70
 msgid "Rehacer"
 msgstr "Redo"
 
-#: i18n/strings.py:54
-msgid "Rehacer última acción (Ctrl+Y)"
-msgstr "Redo last action (Ctrl+Y)"
+#: i18n/strings.py:71
+msgid "Rehacer {} (Ctrl+Y)"
+msgstr "Redo {} (Ctrl+Y)"
 
-#: i18n/strings.py:55
+#: i18n/strings.py:72
 msgid "Pantalla completa"
 msgstr "Fullscreen"
 
-#: i18n/strings.py:56
+#: i18n/strings.py:73
 msgid "Modo pantalla completa (F12)"
 msgstr "Fullscreen mode (F12)"
 
-#: i18n/strings.py:59
+#: i18n/strings.py:76
 msgid "Muestras"
 msgstr "Images"
 
-#: i18n/strings.py:60
+#: i18n/strings.py:77
 msgid "Añadir muestras (Ctrl+A)"
 msgstr "Add image (Ctrl+A)"
 
-#: i18n/strings.py:61
+#: i18n/strings.py:78
 msgid "Añadir..."
 msgstr "Add..."
 
-#: i18n/strings.py:64
+#: i18n/strings.py:81
 msgid "Analizar muestras... (Ctrl+R)"
 msgstr "Analyze images... (Ctrl+R)"
 
-#: i18n/strings.py:65
+#: i18n/strings.py:82
 msgid "Análisis rápido (Shift+Ctrl+R)"
 msgstr "Quick analysis (Shift+Ctrl+R)"
 
-#: i18n/strings.py:66
+#: i18n/strings.py:83
 msgid "Parámetros... (Ctrl+P)"
 msgstr "Settings (Ctrl+P)"
 
-#: i18n/strings.py:67
+#: i18n/strings.py:84
 msgid "Generar archivo excel... (Ctrl+E)"
-msgstr "Generate excel file... (Ctrl+E)"
+msgstr "Generate spreadsheet... (Ctrl+E)"
 
-#: i18n/strings.py:68
+#: i18n/strings.py:85
 msgid "Modo selección"
 msgstr "Selection mode"
 
-#: i18n/strings.py:69
+#: i18n/strings.py:86
 msgid "Modo edición"
 msgstr "Editing mode"
 
-#: i18n/strings.py:70
+#: i18n/strings.py:87
 msgid "Editar contornos"
 msgstr "Edit contours"
 
-#: i18n/strings.py:71
+#: i18n/strings.py:88
 msgid "Construir contornos"
 msgstr "Build contours"
 
-#: i18n/strings.py:72
+#: i18n/strings.py:89
 msgid "Contorno del cometa"
 msgstr "Build tail contour"
 
-#: i18n/strings.py:73
+#: i18n/strings.py:90
 msgid "Contorno de la cabeza"
 msgstr "Build head contour"
 
-#: i18n/strings.py:74
+#: i18n/strings.py:91
 msgid "Añadir punto"
 msgstr "Add point"
 
-#: i18n/strings.py:75
+#: i18n/strings.py:92
 msgid "Eliminar punto/s"
 msgstr "Remove point/s"
 
-#: i18n/strings.py:78
+#: i18n/strings.py:95
 msgid "Vaciar"
 msgstr "Empty"
 
-#: i18n/strings.py:79
+#: i18n/strings.py:96
 msgid "Ampliación"
 msgstr "Enlargement"
 
-#: i18n/strings.py:80
+#: i18n/strings.py:97
 msgid "Ampliar"
 msgstr "Enlarge"
 
-#: i18n/strings.py:81
+#: i18n/strings.py:98
 msgid "Ampliar imagen"
 msgstr "Enlarge image"
 
-#: i18n/strings.py:82
+#: i18n/strings.py:99
 msgid "Reducir"
 msgstr "Reduce"
 
-#: i18n/strings.py:83
+#: i18n/strings.py:100
 msgid "Reducir imagen"
 msgstr "Reduce image"
 
-#: i18n/strings.py:86
+#: i18n/strings.py:103
 msgid "Muestra"
 msgstr "Image"
 
-#: i18n/strings.py:87
+#: i18n/strings.py:104
 msgid "Algoritmo de segmentación:"
 msgstr "Segmentation algorithm:"
 
-#: i18n/strings.py:88
+#: i18n/strings.py:105
 msgid "Contorno de la cola elíptico:"
 msgstr "Elliptical tail contour:"
 
-#: i18n/strings.py:89
+#: i18n/strings.py:106
 msgid "Contorno de la cabeza elíptico:"
 msgstr "Elliptical head contour:"
 
-#: i18n/strings.py:90
+#: i18n/strings.py:107
 msgid "Color del perímetro del cometa"
 msgstr "Tail perimeter color"
 
-#: i18n/strings.py:91
+#: i18n/strings.py:108
 msgid "Color del perímetro de la cabeza"
 msgstr "Head perimeter color"
 
-#: i18n/strings.py:92
+#: i18n/strings.py:109
 msgid "Analizando muestra {}/{}"
 msgstr "Analyzing image {}/{}"
 
-#: i18n/strings.py:93
+#: i18n/strings.py:110
 msgid "Análisis de {}"
 msgstr "{} analysis"
 
-#: i18n/strings.py:94
+#: i18n/strings.py:111
 msgid "Analizar muestras"
 msgstr "Analyze images"
 
-#: i18n/strings.py:97
+#: i18n/strings.py:114
 msgid "Añade tus muestras para comenzar!"
 msgstr "Add your images to get started!"
 
-#: i18n/strings.py:98
+#: i18n/strings.py:115
 msgid "{} imágenes cargadas."
 msgstr "{} images loaded."
 
-#: i18n/strings.py:101
+#: i18n/strings.py:118
 msgid "Cargando muestra {}/{} ..."
 msgstr "Loading sample {}/{} ..."
 
-#: i18n/strings.py:104
+#: i18n/strings.py:121
 msgid "Configuración"
 msgstr "Settings"
 
-#: i18n/strings.py:107
+#: i18n/strings.py:124
 msgid "Ventana de selección"
 msgstr "Selection window"
 
-#: i18n/strings.py:108
+#: i18n/strings.py:125
 msgid "Cometa nº {}"
 msgstr "Comet nº {}"
 
-#: i18n/strings.py:110
+#: i18n/strings.py:127
 msgid ""
 "La edición del cometa nº {} está en curso.\n"
 "Seleccione una de las acciones de abajo para terminar."
 msgstr ""
-"The nº {} comet is being edited.\n"
-"Choose one of the actions below to end."
+"nº {} comet is being edited.\n"
+"Choose one of the actions below to end it."
 
-#: i18n/strings.py:112
+#: i18n/strings.py:129
 msgid "Eliminar cometa"
 msgstr "Delete comet"
 
-#: i18n/strings.py:113
+#: i18n/strings.py:130
 msgid "Eliminar cola"
 msgstr "Remove tail"
 
-#: i18n/strings.py:114
+#: i18n/strings.py:131
 msgid "Editar contorno"
 msgstr "Edit contour"
 
-#: i18n/strings.py:115
+#: i18n/strings.py:132
 msgid "Ver parámetros"
 msgstr "See parameters"
 
-#: i18n/strings.py:118
+#: i18n/strings.py:135
 msgid "Parámetros"
 msgstr "Parameters"
 
-#: i18n/strings.py:120
+#: i18n/strings.py:137
 msgid "Número del cometa"
 msgstr "Comet number"
 
-#: i18n/strings.py:122
+#: i18n/strings.py:139
 msgid "Área del cometa"
 msgstr "Comet area"
 
-#: i18n/strings.py:124
+#: i18n/strings.py:141
 msgid "Valor de intensidad promedio de los píxeles dentro del cometa"
 msgstr "Average pixel intensity inside the comet"
 
-#: i18n/strings.py:126
+#: i18n/strings.py:143
 msgid "Longitud del cometa"
 msgstr "Comet length"
 
-#: i18n/strings.py:128
+#: i18n/strings.py:145
 msgid "Suma de los valores de intensidad de los píxeles dentro del cometa"
 msgstr "Sum of pixel intensities inside the comet"
 
-#: i18n/strings.py:130
+#: i18n/strings.py:147
 msgid "Área de la cabeza"
 msgstr "Head area"
 
-#: i18n/strings.py:132
+#: i18n/strings.py:149
 msgid "Valor de intensidad promedio de los píxeles dentro de la cabeza"
 msgstr "Average pixel intensity inside the head"
 
-#: i18n/strings.py:134
+#: i18n/strings.py:151
 msgid "Longitud de la cabeza"
 msgstr "Head length"
 
-#: i18n/strings.py:136
+#: i18n/strings.py:153
 msgid "Suma de los valores de intensidad de los píxeles dentro de la cabeza"
 msgstr "Sum of pixel intensities inside the head"
 
-#: i18n/strings.py:138
+#: i18n/strings.py:155
 msgid "Porcentaje de DNA del cometa perteneciente a la cabeza"
 msgstr "Comet DNA percentage that belongs to the head"
 
-#: i18n/strings.py:140
+#: i18n/strings.py:157
 msgid "Área de la cola"
 msgstr "Tail area"
 
-#: i18n/strings.py:142
+#: i18n/strings.py:159
 msgid "Valor de intensidad promedio de los píxeles dentro de la cola"
 msgstr "Average pixel intensity inside the tail"
 
-#: i18n/strings.py:144
+#: i18n/strings.py:161
 msgid "Longitud de la cola"
 msgstr "Tail length"
 
-#: i18n/strings.py:146
+#: i18n/strings.py:163
 msgid "Suma de los valores de intensidad de los píxeles dentro de la cola"
 msgstr "Sum of pixel intensities inside the tail"
 
-#: i18n/strings.py:148
+#: i18n/strings.py:165
 msgid "Porcentaje de DNA del cometa perteneciente a la cola"
 msgstr "Comet DNA percentage that belongs to the tail"
 
-#: i18n/strings.py:150
+#: i18n/strings.py:167
 msgid "Momento de torsión de la cola"
 msgstr "Tail torsional moment"
 
-#: i18n/strings.py:152
+#: i18n/strings.py:169
 msgid "Momento de torsión de Olive de la cola"
 msgstr "Tail Olive torsional moment"
 
-#: i18n/strings.py:156
+#: i18n/strings.py:173
 msgid "Cancelar"
 msgstr "Cancel"
 
-#: i18n/strings.py:157
+#: i18n/strings.py:174
 msgid "Descartar"
 msgstr "Discard"
 
-#: i18n/strings.py:158
+#: i18n/strings.py:175
 msgid "Siguiente"
 msgstr "Next"
 
-#: i18n/strings.py:159
+#: i18n/strings.py:176
 msgid "Atrás"
 msgstr "Back"
 
-#: i18n/strings.py:160
+#: i18n/strings.py:177
 msgid "Añadir"
 msgstr "Add"
 
-#: i18n/strings.py:162
+#: i18n/strings.py:179
 msgid "Ejecutar"
 msgstr "Execute"
 
-#: i18n/strings.py:163
+#: i18n/strings.py:180
 msgid "Analizar"
 msgstr "Analyze"
 
-#: i18n/strings.py:164
+#: i18n/strings.py:181
 msgid "Cambiar nombre"
 msgstr "Rename"
 
-#: i18n/strings.py:165
+#: i18n/strings.py:182
 msgid "Eliminar"
 msgstr "Delete"
 
-#: i18n/strings.py:166
+#: i18n/strings.py:183
 msgid "Voltear horizontalmente"
 msgstr "Flip horizontally"
 
-#: i18n/strings.py:167
+#: i18n/strings.py:184
 msgid "Invertir color"
-msgstr ""
+msgstr "Invert colour"
 
-#: i18n/strings.py:171
+#: i18n/strings.py:185
+msgid "última acción"
+msgstr "last action"
+
+#: i18n/strings.py:189
 msgid ""
 "Hay cambios en {} sin guardar.\n"
 "¿Desea guardar antes de continuar?"
@@ -397,7 +413,7 @@ msgstr ""
 "{} has been modified.\n"
 "¿Save before proceeding?"
 
-#: i18n/strings.py:173
+#: i18n/strings.py:191
 msgid ""
 "Originalmente creada como un Trabajo de Fin de Grado, FreeComet es una "
 "aplicación gratuita y de código abierto para trabajar con imágenes del "
@@ -406,18 +422,82 @@ msgstr ""
 "Originally created as a Final Degree Project, FreeComet is a free and open "
 "source application for working with comet assay images."
 
-#: i18n/strings.py:174
+#: i18n/strings.py:192
 msgid "Abrir proyecto"
 msgstr "Open project"
 
-#: i18n/strings.py:175
+#: i18n/strings.py:193
 msgid "Añadir muestras"
 msgstr "Add images"
 
-#: i18n/strings.py:176
+#: i18n/strings.py:194
 msgid "Guardar proyecto"
 msgstr "Save project"
 
-#: i18n/strings.py:177
+#: i18n/strings.py:195
 msgid "Advertencia - FreeComet"
 msgstr "Warning - FreeComet"
+
+#: i18n/strings.py:198
+msgid "'Añadir Imágenes'"
+msgstr "'Add Images'"
+
+#: i18n/strings.py:199
+msgid "'Eliminar Imagen'"
+msgstr "'Delete Comet'"
+
+#: i18n/strings.py:200
+msgid "'Renombrar Imagen'"
+msgstr "'Rename Image'"
+
+#: i18n/strings.py:201
+msgid "'Añadir Cometa'"
+msgstr "'Add Comet'"
+
+#: i18n/strings.py:202
+msgid "'Eliminar Cometa'"
+msgstr "'Delete Comet'"
+
+#: i18n/strings.py:203
+msgid "'Eliminar Cola de Cometa'"
+msgstr "'Remove Comet Tail'"
+
+#: i18n/strings.py:204
+msgid "'Analizar Imágenes'"
+msgstr "'Analyze Images'"
+
+#: i18n/strings.py:205
+msgid "'Voltear Imagen'"
+msgstr "'Flip Image'"
+
+#: i18n/strings.py:206
+msgid "'Invertir Imagen'"
+msgstr "'Invert Image'"
+
+#: i18n/strings.py:207
+msgid "'Comenzar Edición de Cometa'"
+msgstr "'Start Comet Editing'"
+
+#: i18n/strings.py:208
+msgid "'Cancelar Edición de Cometa'"
+msgstr "'Cancel Comet Editing'"
+
+#: i18n/strings.py:209
+msgid "'Finalizar Edición de Cometa'"
+msgstr "'End Comet Editing'"
+
+#: i18n/strings.py:210
+msgid "'Añadir Punto Delimitador'"
+msgstr "'Add point'"
+
+#: i18n/strings.py:211
+msgid "'Conectar Puntos Delimitadores'"
+msgstr "'Connect Points'"
+
+#: i18n/strings.py:212
+msgid "'Mover Puntos Delimitadores'"
+msgstr "'Move Points'"
+
+#: i18n/strings.py:213
+msgid "'Eliminar Puntos Delimitadores'"
+msgstr "'Delete Points'"

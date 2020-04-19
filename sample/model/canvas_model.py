@@ -10,8 +10,8 @@ import cairo
 import copy
 
 # Custom imports
-from singleton import Singleton
-import model.utils as utils
+from sample.singleton import Singleton
+import sample.model.utils as utils
 
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #

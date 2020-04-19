@@ -10,8 +10,8 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
 # Custom imports
-from view.canvas import Canvas
-from observer import Observable
+from sample.view.canvas import Canvas
+from sample.observer import Observable
 
  
 
