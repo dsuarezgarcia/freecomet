@@ -5,7 +5,7 @@
 '''
 
 UI_FILE = 'sample/data/application.ui'
-LOGO_ICO = 'sample/data/logo.png'
+LOGO_ICO = 'sample/data/logo.ico'
 
 LOCALEDIR = 'sample/data/locales'
 DOMAIN = 'base'
