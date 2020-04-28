@@ -4,7 +4,7 @@
     The threads module.
 '''
 
-
+# General imports
 import threading
 import ctypes
 
@@ -23,13 +23,12 @@ class ThreadWithException(threading.Thread):
  
     ''' Initialization method. '''
     def __init__(self, target, args): 
-
         threading.Thread.__init__(self, target=target, args=args) 
    
-    ''' Returns the Thread ID. '''   
+    ''' Returns the Thread identifier. '''   
     def get_id(self): 
   
-        # Returns id of the respective thread 
+        # Returns the id of the respective thread 
         if hasattr(self, 'thread_id'): 
             return self.thread_id
 

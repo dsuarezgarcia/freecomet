@@ -845,11 +845,10 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkToolButton" id="drawing-area-toolbar-excel">
+                      <object class="GtkToolButton" id="drawing-area-toolbar-generate-output-file">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="use_underline">True</property>
-                        <property name="icon_name">package-x-generic</property>
                         <accelerator key="e" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
                       </object>
                       <packing>
@@ -2828,7 +2827,7 @@
       </object>
     </child>
   </object>
-  <object class="GtkFileChooserDialog" id="dialog-generate-excel-file">
+  <object class="GtkFileChooserDialog" id="dialog-generate-output-file">
     <property name="can_focus">False</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">main-window</property>
@@ -2848,7 +2847,7 @@
             <property name="can_focus">False</property>
             <property name="layout_style">end</property>
             <child>
-              <object class="GtkButton" id="dialog-generate-excel-file-cancel">
+              <object class="GtkButton" id="dialog-generate-output-file-cancel">
                 <property name="label">Cancelar</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
@@ -2863,7 +2862,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="dialog-generate-excel-file-save">
+              <object class="GtkButton" id="dialog-generate-output-file-save">
                 <property name="label">Guardar</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
@@ -2887,8 +2886,8 @@
       </object>
     </child>
     <action-widgets>
-      <action-widget response="-6">dialog-generate-excel-file-cancel</action-widget>
-      <action-widget response="-5">dialog-generate-excel-file-save</action-widget>
+      <action-widget response="-6">dialog-generate-output-file-cancel</action-widget>
+      <action-widget response="-5">dialog-generate-output-file-save</action-widget>
     </action-widgets>
   </object>
   <object class="GtkColorChooserDialog" id="dialog-head-color-chooser">

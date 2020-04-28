@@ -426,15 +426,15 @@ class Controller(object):
         
         self.__view.update_undo_and_redo_buttons_tooltips()
 
-    ''' 'Generate excel file' use case. '''
-    def generate_excel_file_use_case(self):
+    ''' 'Generate output file' use case. '''
+    def generate_output_file_use_case(self):
 
-        # Run GenerateExcelFileDialog
-        (response_id, filename) = self.__view.run_generate_excel_file_dialog(
+        # Run GenerateOutputFileDialog
+        (response_id, filename) = self.__view.run_generate_output_file_dialog(
             self.__get_project_name())
 
         if response_id == DialogResponse.ACCEPT:
-            self.__model.generate_excel_file(filename)
+            self.__model.generate_output_file(filename)
 
     ''' 'See comet parameters' use case. '''
     def see_comet_parameters_use_case(self, sample_id, comet_id):

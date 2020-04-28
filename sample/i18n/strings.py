@@ -81,7 +81,7 @@ class Strings(object):
         self.ANALYZE_SAMPLES_BUTTON_TOOLTIP = _("Analizar muestras... (Ctrl+R)")
         self.QUICK_ANALYZE_BUTTON_TOOLTIP = _("Análisis rápido (Shift+Ctrl+R)")
         self.PARAMETERS_BUTTON_TOOLTIP = _("Parámetros... (Ctrl+P)")
-        self.GENERATE_EXCEL_FILE_BUTTON_TOOLTIP = _("Generar archivo excel... (Ctrl+E)")
+        self.GENERATE_OUTPUT_FILE_BUTTON_TOOLTIP = _("Generar estadísticas... (Ctrl+E)")
         self.SELECTION_MODE_BUTTON_TOOLTIP = _("Modo selección")
         self.EDITING_MODE_BUTTON_TOOLTIP = _("Modo edición")
         self.EDITING_SELECTION_MODE_BUTTON_TOOLTIP = _("Editar contornos")

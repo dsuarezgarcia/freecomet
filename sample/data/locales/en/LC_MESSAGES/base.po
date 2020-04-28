@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-04-19 20:21+0200\n"
+"POT-Creation-Date: 2020-04-28 02:25+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Diego Suárez García <d.suarez@udc.es>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -142,8 +142,8 @@ msgid "Parámetros... (Ctrl+P)"
 msgstr "Settings (Ctrl+P)"
 
 #: i18n/strings.py:84
-msgid "Generar archivo excel... (Ctrl+E)"
-msgstr "Generate spreadsheet... (Ctrl+E)"
+msgid "Generar estadísticas... (Ctrl+E)"
+msgstr "Generate metrics file... (Ctrl+E)"
 
 #: i18n/strings.py:85
 msgid "Modo selección"

@@ -58,7 +58,7 @@ class View(Observer):
             add_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION)
         self.__dialog_save_before_action_save_button.get_style_context().\
             add_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION)
-        self.__dialog_generate_excel_file_save_button.get_style_context().\
+        self.__dialog_generate_output_file_save_button.get_style_context().\
             add_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION)
         self.__analyze_samples_window.get_next_button().get_style_context().\
             add_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION)
@@ -132,12 +132,12 @@ class View(Observer):
         self.__dialog_save_before_action_save_button = gtk_builder.get_object(
             "dialog-save-before-action-save")
         self.__dialog_about = gtk_builder.get_object("dialog-about")
-        self.__dialog_generate_excel_file = gtk_builder.get_object(
-            "dialog-generate-excel-file")
-        self.__dialog_generate_excel_file_cancel_button = gtk_builder.get_object(
-            "dialog-generate-excel-file-cancel")
-        self.__dialog_generate_excel_file_save_button = gtk_builder.get_object(
-            "dialog-generate-excel-file-save")
+        self.__dialog_generate_output_file = gtk_builder.get_object(
+            "dialog-generate-output-file")
+        self.__dialog_generate_output_file_cancel_button = gtk_builder.get_object(
+            "dialog-generate-output-file-cancel")
+        self.__dialog_generate_output_file_save_button = gtk_builder.get_object(
+            "dialog-generate-output-file-save")
         self.__dialog_comet_color_chooser = gtk_builder.get_object(
             "dialog-comet-color-chooser")
         self.__dialog_head_color_chooser = gtk_builder.get_object(
@@ -251,8 +251,8 @@ class View(Observer):
             "clicked", self.__on_canvas_build_head_contour_button_clicked)
         self.__main_window.get_canvas().get_settings_button().connect(
             "clicked", self.__on_canvas_settings_button_clicked)
-        self.__main_window.get_canvas().get_excel_button().connect(
-            "clicked", self.__on_canvas_excel_button_clicked)
+        self.__main_window.get_canvas().get_generate_output_file_button().connect(
+            "clicked", self.__on_canvas_generate_output_file_button_clicked)
         self.__main_window.get_canvas().get_scrolledwindow().get_hscrollbar().connect(
             "value-changed", self.__on_canvas_horizontal_scrollbar_value_changed)
         self.__main_window.get_canvas().get_scrolledwindow().get_vscrollbar().connect(
@@ -450,8 +450,8 @@ class View(Observer):
             strings.QUICK_ANALYZE_BUTTON_TOOLTIP)
         canvas.get_settings_button().set_tooltip_text(
             strings.PARAMETERS_BUTTON_TOOLTIP)
-        canvas.get_excel_button().set_tooltip_text(
-            strings.GENERATE_EXCEL_FILE_BUTTON_TOOLTIP)
+        canvas.get_generate_output_file_button().set_tooltip_text(
+            strings.GENERATE_OUTPUT_FILE_BUTTON_TOOLTIP)
         canvas.get_selection_button().set_tooltip_text(
             strings.SELECTION_MODE_BUTTON_TOOLTIP)
         canvas.get_editing_button().set_tooltip_text(
@@ -553,9 +553,9 @@ class View(Observer):
             strings.DISCARD_BUTTON_LABEL)
         self.__dialog_save_before_action_save_button.set_label(
             strings.SAVE_BUTTON_LABEL)
-        self.__dialog_generate_excel_file_cancel_button.set_label(
+        self.__dialog_generate_output_file_cancel_button.set_label(
             strings.CANCEL_BUTTON_LABEL)
-        self.__dialog_generate_excel_file_save_button.set_label(
+        self.__dialog_generate_output_file_save_button.set_label(
             strings.SAVE_BUTTON_LABEL)
 
         # AnalyzeSamplesLoadingWindow
@@ -687,17 +687,17 @@ class View(Observer):
         # Hide dialog
         self.__dialog_about.hide()
 
-    ''' Runs GenerateExcelFileDialog. '''
-    def run_generate_excel_file_dialog(self, filename):
+    ''' Runs GenerateOutputFileDialog. '''
+    def run_generate_output_file_dialog(self, filename):
 
         # Set default name
-        self.__dialog_generate_excel_file.set_current_name(filename)
+        self.__dialog_generate_output_file.set_current_name(filename)
         # Show dialog and wait for user response
-        response_id = self.__dialog_generate_excel_file.run()
+        response_id = self.__dialog_generate_output_file.run()
         # Hide dialog
-        self.__dialog_generate_excel_file.hide()
+        self.__dialog_generate_output_file.hide()
         # Return response ID and filename
-        return (response_id, self.__dialog_generate_excel_file.get_filename())
+        return (response_id, self.__dialog_generate_output_file.get_filename())
 
     ''' Runs ColorChooserDialog. '''
     def run_color_chooser_dialog(self, color_chooser_dialog):
@@ -1144,9 +1144,9 @@ class View(Observer):
         self.__main_settings_window.show_components(
             algorithm_settings)
 
-    ''' Canvas 'Excel' Button 'clicked' signal callback. '''
-    def __on_canvas_excel_button_clicked(self, button):
-        self.__controller.generate_excel_file_use_case()
+    ''' Canvas 'Generate output file' Button 'clicked' signal callback. '''
+    def __on_canvas_generate_output_file_button_clicked(self, button):
+        self.__controller.generate_output_file_use_case()
 
     ''' Canvas 'Selection Mode' Button 'clicked' callback. '''
     def __on_canvas_selection_button_clicked(self, button):

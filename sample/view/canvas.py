@@ -59,8 +59,8 @@ class Canvas(object):
             "drawing-area-toolbar-analyze-all")
         self.__settings_button = gtk_builder.get_object(
             "drawing-area-toolbar-settings")
-        self.__excel_button = gtk_builder.get_object(
-            "drawing-area-toolbar-excel") 
+        self.__generate_output_file_button = gtk_builder.get_object(
+            "drawing-area-toolbar-generate-output-file") 
         self.__selection_button = gtk_builder.get_object(
             "drawing-area-toolbar-selection")
         self.__editing_button = gtk_builder.get_object(
@@ -340,7 +340,7 @@ class Canvas(object):
     
         self.__analyze_button.set_sensitive(value)
         self.__analyze_all_button.set_sensitive(value)
-        self.__excel_button.set_sensitive(value)
+        self.__generate_output_file_button.set_sensitive(value)
         self.__selection_button.set_sensitive(value)
         self.__editing_button.set_sensitive(value)
         self.__editing_selection_button.set_sensitive(value)
@@ -429,11 +429,11 @@ class Canvas(object):
     def set_settings_button(self, settings_button):
         self.__settings_button = settings_button
 
-    def get_excel_button(self):
-        return self.__excel_button
+    def get_generate_output_file_button(self):
+        return self.__generate_output_file_button
 
-    def set_excel_button(self, excel_button):
-        self.__excel_button = excel_button
+    def set_generate_output_file_button(self, generate_output_file_button):
+        self.__generate_output_file_button = generate_output_file_button
     
     def get_selection_button(self):
         return self.__selection_button

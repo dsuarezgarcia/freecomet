@@ -10,9 +10,13 @@ import ntpath
 import pickle
 import xlwt
 import os
-
-from xlwt import Workbook
  
+
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
+#                                                                             #
+# 	Parser                                                                    #
+#                                                                             #
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 
 class Parser(object):
 
@@ -37,11 +41,28 @@ class Parser(object):
         in_file.close()
         return data
 
-    ''' Creates and saves the excel file with the model statistics. '''
-    def generate_excel_file(sample_list, path):
+    ''' Generates the output of current project. '''
+    def generate_output(sample_list, path):
+
+        workbook = Parser.generate_spreadsheet(sample_list)
+
+        # Validate path
+        filename = ntpath.basename(path)      
+        _, extension = os.path.splitext(filename)
+        if extension != Parser.FILE_EXTENSION:
+            index = len(path) - len(filename)
+            filename += Parser.FILE_EXTENSION            
+            path = path[:index] + filename
+
+        # Save    
+        workbook.save(path)
+
+
+    ''' Creates a spreadsheet with the model statistics. '''
+    def generate_spreadsheet(sample_list):
 
         # Workbook is created 
-        workbook = Workbook()  
+        workbook = xlwt.Workbook()  
         # add_sheet is used to create the sheet. 
         sheet = workbook.add_sheet('Sheet')
 
@@ -153,19 +174,9 @@ class Parser(object):
             Parser.write_statistics(sheet, row, min, "Min", parameters_list)
             row += 1
             Parser.write_statistics(sheet, row, max, "Max", parameters_list)
-
-        # Validate path
-        filename = ntpath.basename(path)      
-        _, extension = os.path.splitext(filename)
-        if extension != Parser.FILE_EXTENSION:
-            index = len(path) - len(filename)
-            filename += Parser.FILE_EXTENSION            
-            path = path[:index] + filename
-
-        # Save    
-        workbook.save(path) 
-
-        
+            
+        return workbook    
+       
     ''' Writes the statistics from given function. '''
     def write_statistics(sheet, row, fun, fun_name, list): 
 

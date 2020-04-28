@@ -171,9 +171,11 @@ class Model(object):
     def rename_sample(self, sample_id, name):
         self.__store[sample_id].set_name(name)
 
-    ''' Generates an excel file with the segmented comet metrics. '''
-    def generate_excel_file(self, filename):
-        Parser.generate_excel_file(self.__store.values(), filename) 
+    ''' 
+        Generates the output file with the segmented comet images and metrics.
+    '''
+    def generate_output_file(self, filename):
+        Parser.generate_output(self.__store.values(), filename) 
 
     ''' Returns the current project name. '''
     def get_project_name(self):
