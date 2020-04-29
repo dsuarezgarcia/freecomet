@@ -1,15 +1,21 @@
 # -*- encoding: utf-8 -*-
 
 '''
-    The Parser module.
+    The parser module.
 '''
 
 # General imports
 import statistics
 import ntpath
 import pickle
+import numpy
 import xlwt
 import os
+
+# Custom imports
+from sample.model.canvas_model import CanvasModel
+import sample.model.utils as utils
+import sample.model.constants as constants
  
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
@@ -25,6 +31,7 @@ class Parser(object):
     '''
 
     FILE_EXTENSION = ".xls"
+    OUTPUT_STR = "_out"
 
     ''' Write data in given path. '''
     def write(data, path):
@@ -43,27 +50,78 @@ class Parser(object):
 
     ''' Generates the output of current project. '''
     def generate_output(sample_list, path):
-
+        
+        # Create spreadsheet
         workbook = Parser.generate_spreadsheet(sample_list)
+        # Create dir folder
+        (final_path, dir_name) = Parser.create_dir(path)
 
-        # Validate path
-        filename = ntpath.basename(path)      
-        _, extension = os.path.splitext(filename)
-        if extension != Parser.FILE_EXTENSION:
-            index = len(path) - len(filename)
-            filename += Parser.FILE_EXTENSION            
-            path = path[:index] + filename
+        # Save spreadsheet file on output dir
+        workbook.save(os.path.join(final_path, dir_name+Parser.FILE_EXTENSION))
+        # Save segmented images on output dir
+        Parser.save_segmented_images(sample_list, final_path)
 
-        # Save    
-        workbook.save(path)
+    ''' Saves the segmented images on given path. '''
+    def save_segmented_images(sample_list, path):
 
+        # Numpy wants BGR and not RGB
+        tail_color = (
+            CanvasModel.get_instance().get_tail_color().blue * constants.MAX_VALUE,          
+            CanvasModel.get_instance().get_tail_color().green * constants.MAX_VALUE,
+            CanvasModel.get_instance().get_tail_color().red * constants.MAX_VALUE           
+        )
+                     
+        head_color = (
+            CanvasModel.get_instance().get_head_color().blue * constants.MAX_VALUE,
+            CanvasModel.get_instance().get_head_color().green * constants.MAX_VALUE,           
+            CanvasModel.get_instance().get_head_color().red * constants.MAX_VALUE
+        )
+
+        for sample in sample_list:
+        
+            image_copy = numpy.copy(sample.get_image())
+            n = 1
+            for comet in sample.get_comet_list():
+            
+                if comet.get_tail_contour() is not None:
+                    utils.draw_contours(image_copy, [comet.get_tail_contour()],
+                        tail_color, 1)
+                utils.draw_contours(image_copy, [comet.get_head_contour()],
+                    head_color, 1)
+                    
+                n += 1
+
+            utils.save_image(image_copy, os.path.join(
+                path, Parser.get_image_output_name(sample.get_name())))
+
+    ''' Creates a directory to save the output. '''
+    def create_dir(path):
+        
+        original_dir_name = ntpath.basename(path)
+        dir_name = original_dir_name
+        local_path = path[:-len(dir_name)]
+            
+        n = 1
+        created = False
+        while not created:
+    
+            try:
+                os.mkdir(local_path + dir_name)
+                created = True
+                
+            except OSError as error:
+                dir_name = original_dir_name + "(" + str(n) + ")"
+                n += 1
+                
+                
+        return (local_path+dir_name, dir_name)
 
     ''' Creates a spreadsheet with the model statistics. '''
     def generate_spreadsheet(sample_list):
 
         # Workbook is created 
         workbook = xlwt.Workbook()  
-        # add_sheet is used to create the sheet. 
+        # add_sheet is used to create the spreadsheet. 
         sheet = workbook.add_sheet('Sheet')
 
         # Columns creation 
@@ -116,12 +174,15 @@ class Parser(object):
         # Sample statistics
         row = 1
         for sample in sample_list:
-            comet_number = 1         
+        
+        
+            sample_output_name = Parser.get_image_output_name(sample.get_name())
+            comet_number = 1                
             for comet in sample.get_comet_list():
 
                 parameters = comet.get_parameters()
 
-                sheet.write(row, 0, sample.get_name())
+                sheet.write(row, 0, sample_output_name)
                 sheet.write(row, 1, comet_number)
                 sheet.write(row, 2, parameters.get_comet_area())
                 comet_area_list.append(parameters.get_comet_area())
@@ -197,5 +258,10 @@ class Parser(object):
         sheet.write(row, 15, fun(list[13])) 
         sheet.write(row, 16, fun(list[14])) 
         sheet.write(row, 17, fun(list[15]))
-
-  
+    
+    ''' Returns the output name of an image. '''
+    def get_image_output_name(image_name): 
+        name, extension = os.path.splitext(image_name)
+        return (name + Parser.OUTPUT_STR + extension)
+    
+    
