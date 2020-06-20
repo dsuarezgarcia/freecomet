@@ -4,11 +4,11 @@
     The config file.
 '''
 
-UI_FILE = 'sample/data/application.ui'
-LOGO_ICO = 'sample/data/logo.ico'
+UI_FILE = 'data/application.ui'
+LOGO_ICO = 'data/logo.ico'
 
-LOCALEDIR = 'sample/data/locales'
+LOCALEDIR = 'data/locales'
 DOMAIN = 'base'
 
-CLASSIFIER_MODEL_FILENAME = 'sample/data/classifier_model.joblib'
+CLASSIFIER_MODEL_FILENAME = 'data/classifier_model.joblib'
 
