@@ -10,6 +10,7 @@
 from matplotlib import pyplot
 import shutil
 import numpy
+import math
 import cv2
 import sys
 import os
@@ -684,18 +685,20 @@ class FreeComet(Algorithm):
             # [2] Healthy comets should not have tail
             comet_contour = comet_list[i][0]
             head_contour = comet_list[i][1]
-            if self.__is_healthy_comet(comet_contour, head_contour, gs_image):
-                comet_contour = None
-            # [3] Fitting Options
-            else:
-                # [3.1] Tail fitting
-                if self.__fit_tail_flag:
-                    comet_contour = self.__fit_tail(comet_contour, head_contour, gs_image)
-                # [3.2] Head fitting
-                if self.__fit_head_flag:
-                    head_contour = self.__fit_head(comet_contour, head_contour, gs_image)
+            healthy_comet = self.__is_healthy_comet(comet_contour, head_contour, gs_image)
+            if healthy_comet is not None:
+                if healthy_comet: 
+                    comet_contour = None
+                # [3] Fitting Options
+                else:
+                    # [3.1] Tail fitting
+                    if self.__fit_tail_flag:
+                        comet_contour = self.__fit_tail(comet_contour, head_contour, gs_image)
+                    # [3.2] Head fitting
+                    if self.__fit_head_flag:
+                        head_contour = self.__fit_head(comet_contour, head_contour, gs_image)
 
-            comet_list[i] = (comet_contour, head_contour)
+                comet_list[i] = (comet_contour, head_contour)
             i += 1
 
         if self.DEBUG:
@@ -749,14 +752,17 @@ class FreeComet(Algorithm):
         classifier_sample = []
 
         # [1] Head Area to Comet Area proportion
-        classifier_sample.append(utils.get_contour_area(head_contour) / utils.get_contour_area(comet_contour))
+        comet_area = utils.get_contour_area(comet_contour)
+        if comet_area == 0:
+            return None
+        classifier_sample.append(utils.get_contour_area(head_contour) / comet_area)
 
         # [2] Head average intensity
         (x, y, width, height) = utils.create_enclosing_rectangle(comet_contour)
         head_mask = utils.create_contour_mask(head_contour, gs_image, (x, y, width, height))
         head_roi = numpy.copy(gs_image[y:y+height, x:x+width])
         coordinates = numpy.where(head_mask != 0)
-        if len(coordinates) == 0:
+        if len(coordinates[0]) == 0 or len(coordinates[1]) == 0:
             return None
         classifier_sample.append(numpy.sum(head_roi[coordinates]) / len(coordinates[0]))
 
@@ -765,7 +771,7 @@ class FreeComet(Algorithm):
         tail_mask =  comet_mask - head_mask
         tail_roi = numpy.copy(gs_image[y:y+height, x:x+width])
         coordinates = numpy.where(tail_mask != 0)
-        if len(coordinates) == 0:
+        if len(coordinates[0]) == 0 or len(coordinates[1]) == 0:
             return None
         classifier_sample.append(numpy.sum(tail_roi[coordinates]) / len(coordinates[0]))
 
@@ -775,6 +781,10 @@ class FreeComet(Algorithm):
         right_length = (utils.get_contour_rightmost_point(comet_contour)[0] -
                        utils.get_contour_rightmost_point(head_contour)[0])
         classifier_sample.append(right_length - left_length)
+
+        if (math.isnan(classifier_sample[0]) or math.isnan(classifier_sample[1]) or
+                math.isnan(classifier_sample[2]) or math.isnan(classifier_sample[3])):
+            return None
 
         return (self.classifier.predict([classifier_sample]) == 1)
 

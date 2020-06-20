@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 
 '''
-    The DialogResponse module.
+    The dialog_response module.
 '''
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #

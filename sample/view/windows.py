@@ -354,7 +354,7 @@ class AnalyzeSamplesWindow(SettingsWindow):
         self.set_algorithm_combobox(gtk_builder.get_object(
             "analyze-samples-window-algorithm-combobox"))
         self.get_algorithm_combobox().append("0", "FreeComet")
-        self.get_algorithm_combobox().append("1", "OpenComet")
+        #self.get_algorithm_combobox().append("1", "OpenComet")
         self.set_fit_tail_label(gtk_builder.get_object(
             "analyze-samples-window-fit-tail-label"))
         self.set_fit_tail_switch(gtk_builder.get_object(
@@ -758,7 +758,7 @@ class MainSettingsWindow(SettingsWindow):
         self.set_algorithm_combobox(gtk_builder.get_object(
             "algorithm-combobox"))
         self.get_algorithm_combobox().append("0", "FreeComet")
-        self.get_algorithm_combobox().append("1", "OpenComet")  
+        #self.get_algorithm_combobox().append("1", "OpenComet")  
         self.set_fit_tail_label(gtk_builder.get_object("fit-tail-label"))
         self.set_fit_tail_switch(gtk_builder.get_object("fit-tail-switch"))
         self.set_fit_head_label(gtk_builder.get_object("fit-head-label"))

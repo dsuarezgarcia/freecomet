@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 
 '''
-    The Observer module.
+    The observer module.
 '''
 
 
@@ -22,6 +22,7 @@ class Observer(object):
         raise NotImplementedError("Method must be implemented.")
 
 
+
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 #                                                                             #
 # 	Observable                                                                #
@@ -31,7 +32,7 @@ class Observer(object):
 class Observable(object):
 
     '''
-        The Observable class.
+        The Observable abstract class.
     '''
 
     ''' Initialization method. '''
@@ -42,6 +43,7 @@ class Observable(object):
 
     ''' Registers a new observer. '''
     def register(self, observer):
+    
         self.__observers.add(observer)
         observer.update(self.__observable_state)
 

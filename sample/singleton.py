@@ -14,11 +14,15 @@
 class Singleton(type):
 
     '''
-        The Singleton class.
+        The Singleton metaclass.
     '''
 
     __instances = {}
 
+    ''' 
+        Executed when the constructor of a class that implements Singleton is
+        called.
+    '''
     def __call__(cls, *args, **kwargs):
     
         if cls not in cls.__instances:
@@ -28,6 +32,7 @@ class Singleton(type):
 
         return cls.__instances[cls]
 
+    ''' Returns the instantiated objet of the given class or None. '''
     def get_instance(cls):
 
         # Not instantiated

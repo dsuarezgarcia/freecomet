@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 
 '''
-    The config module.
+    The config file.
 '''
 
 UI_FILE = 'sample/data/application.ui'
