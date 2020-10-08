@@ -157,6 +157,8 @@ class View(Observer):
         # MainWindow
         self.__main_window.get_window().connect(
             "delete-event", self.__on_main_window_delete_event)
+        self.__main_window.get_window().connect(
+            "configure-event", self.__on_main_window_configure_event)
 
         # MenuBar
         menubar = self.__main_window.get_menubar()
@@ -233,6 +235,10 @@ class View(Observer):
             "button-release-event", self.__on_canvas_button_release_event)
         self.__main_window.get_canvas().get_drawing_area().connect(
             "draw", self.__on_canvas_draw)
+        self.__main_window.get_canvas().get_drawing_area().connect(
+            "key-press-event", self.__on_canvas_key_press_event)
+        self.__main_window.get_canvas().get_drawing_area().connect(
+            "size-allocate", self.__on_canvas_size_allocate)
         self.__main_window.get_canvas().get_analyze_button().connect(
             "clicked", self.__on_canvas_analyze_button_clicked)
         self.__main_window.get_canvas().get_analyze_all_button().connect(
@@ -257,14 +263,11 @@ class View(Observer):
             "value-changed", self.__on_canvas_horizontal_scrollbar_value_changed)
         self.__main_window.get_canvas().get_scrolledwindow().get_vscrollbar().connect(
             "value-changed", self.__on_canvas_vertical_scrollbar_value_changed)
-        self.__main_window.get_canvas().get_drawing_area().connect(
-            "key-press-event", self.__on_canvas_key_press_event)
-        self.__main_window.get_canvas().get_drawing_area().connect(
-            "size-allocate", self.__on_canvas_size_allocate)
         self.__main_window.get_canvas().get_delete_delimiter_point_button().connect(
             "activate", self.__on_canvas_delete_delimiter_point_button_activated)
         self.__main_window.get_canvas().get_add_delimiter_point_button().connect(
             "activate", self.__on_canvas_add_delimiter_point_button_activated)
+
         # ColorTool
         self.__main_window.get_color_tool().get_tail_color_button_image().connect(
             "size-allocate", self.__on_canvas_tail_color_button_image_size_allocated)
@@ -711,7 +714,7 @@ class View(Observer):
 
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
-#                                  Callbacks                                  #
+#                           Signals Callbacks                                 #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ # 
 
     #                                              #
@@ -722,6 +725,11 @@ class View(Observer):
     def __on_main_window_delete_event(self, window, event):
         self.__controller.exit_use_case()
         return True   
+
+    ''' Main Window 'configure-event' callback. '''
+    def __on_main_window_configure_event(self, viewport, event):
+        if self.__controller.get_active_sample_id() is not None:
+            self.__main_window.get_canvas().update()
 
     ''' MenuBar 'New' tab 'activate' signal callback. '''
     def __on_menubar_new_button_activated(self, menuitem):
@@ -1435,10 +1443,6 @@ class View(Observer):
         self.__main_settings_window.restart()
         self.__main_window.restart()
         self.__analyze_samples_loading_window.restart()
-        
-    ''' Ends the application execution. '''
-    def exit(self):
-        Gtk.main_quit()
 
     ''' Observer.update() implementation method. '''
     def update(self, store):

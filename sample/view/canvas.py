@@ -167,9 +167,19 @@ class Canvas(object):
     ''' On mouse motion callback method. '''
     def on_mouse_motion(self, event, pixbuf):
 
-        # See if mouse is inside the visible area
-        (x, y) = int(event.x), int(event.y)
-        
+        self.__mouse_coordinates = int(event.x), int(event.y)
+        if not self.__is_mouse_pointer_inside_visible_area():
+            return True
+
+        self.__view.get_controller().on_canvas_mouse_motion(event)
+        self.update()
+
+    ''' Returns whether the mouse pointer is inside the DrawingArea's visible area or not. '''
+    def __is_mouse_pointer_inside_visible_area(self):
+
+        mouse_x = self.__mouse_coordinates[0]
+        mouse_y = self.__mouse_coordinates[1]
+
         x_offset = self.__viewport.get_hadjustment().get_value()
         y_offset = self.__viewport.get_vadjustment().get_value()
         x_margin = ( self.__viewport.get_margin_left() +
@@ -180,17 +190,8 @@ class Canvas(object):
         visible_area_width = self.__viewport.get_allocated_size()[0].width - x_margin
         visible_area_height = self.__viewport.get_allocated_size()[0].height - y_margin
 
-        # Mouse pointer must be inside of DrawingArea's visible area
-        if not ( (x >= x_offset and x < x_offset + visible_area_width) and
-                 (y >= y_offset and y < y_offset + visible_area_height) ):
-            return True 
-
-        # Current mouse location
-        self.__mouse_coordinates = (x, y)
-        # State specific mouse motion event
-        self.__view.get_controller().on_canvas_mouse_motion(event)
-
-        self.update()
+        return ( (mouse_x >= x_offset and mouse_x < x_offset + visible_area_width) and
+                 (mouse_y >= y_offset and mouse_y < y_offset + visible_area_height) )
 
     ''' Draw method. '''
     def draw(self, cairo_context, pixbuf, comet_view_list):
@@ -239,38 +240,43 @@ class Canvas(object):
             self.__brush.set_width(self.__contours_width)
             self.__brush.set_line_type(self.__contours_line_type)
 
-            # Start path
+            # Initialize path
             cairo_context.new_path()
 
             for comet_view in comet_view_list:
-
+            
                 # Do not draw comet if it's currently being edited
                 if (self.__view.get_controller().get_active_sample_comet_being_edited_id() is not None and
-                    self.__view.get_controller().get_active_sample_comet_being_edited_id() == comet_view.get_id() and
-                    self.__view.get_controller().get_editing()):
+                        self.__view.get_controller().get_active_sample_comet_being_edited_id() == comet_view.get_id() and
+                        self.__view.get_controller().get_editing()):
                     continue
 
-                # Set Brush color
-                self.__brush.set_color(self.__view.get_controller().get_tail_color())
+                self.__draw_comet(cairo_context, comet_view)
 
-                # Draw comet contour
-                if comet_view.get_scaled_tail_contour() is not None:
-                    tail_contour = utils.contour_to_list(
-                        comet_view.get_scaled_tail_contour())
-                    self.__brush.draw_line(
-                        cairo_context, tail_contour, close=True)
+    ''' Draws the contours of a comet. '''
+    def __draw_comet(self, cairo_context, comet_view):
 
-                cairo_context.new_sub_path()
+        # Set Brush color to Tail Color
+        self.__brush.set_color(self.__view.get_controller().get_tail_color())
 
-                # Set Brush color
-                self.__brush.set_color(self.__view.get_controller().get_head_color())            
-        
-                # Draw head contour
-                head_contour = utils.contour_to_list(
-                                   comet_view.get_scaled_head_contour())
-                self.__brush.draw_line(
-                    cairo_context, head_contour, close=True)
-            
+        # Draw comet tail contour
+        if comet_view.get_scaled_tail_contour() is not None:
+            tail_contour = utils.contour_to_list(
+                comet_view.get_scaled_tail_contour())
+            self.__brush.draw_line(
+                cairo_context, tail_contour, close=True)
+
+        cairo_context.new_sub_path()
+
+        # Set Brush color to Head color
+        self.__brush.set_color(self.__view.get_controller().get_head_color())            
+
+        # Draw comet head contour
+        head_contour = utils.contour_to_list(
+                           comet_view.get_scaled_head_contour())
+        self.__brush.draw_line(
+            cairo_context, head_contour, close=True)
+
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 #                                 Methods                                     #

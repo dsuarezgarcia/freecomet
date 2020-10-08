@@ -46,6 +46,8 @@ class I18n(object):
             self.__strings.translate_to_spanish()
         else:
             self.__strings.translate_to_english()
+        #else:
+        #    raise RuntimeError('Language ' + language + ' not implemented.')
         
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #

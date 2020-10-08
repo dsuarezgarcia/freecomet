@@ -56,27 +56,27 @@ class Controller(object):
 
     ''' Initialization method. '''
     def __init__(self, model, view):
-    
+
         # Settings
         self.__settings = Gtk.Settings.get_default()
         self.__settings.set_property("gtk-theme-name", "Adwaita")
         self.__settings.set_property(
             "gtk-application-prefer-dark-theme",
             False)
-    
+
         # i18n
         self.__i18n = I18n()
-    
+
         # Active Sample ID
         self.__active_sample_id = None
-        
+
         # Undo & Redo stacks
         self.__undo_stack = []
         self.__redo_stack = []
-        
+
         # Flags
-        self.__flag_unsaved_changes = False
-        self.__flag_project_is_new = True
+        self.__is_unsaved_project = False
+        self.__is_new_project = True
 
         # Constants
         self.__SEPARATOR = " - "
@@ -85,7 +85,7 @@ class Controller(object):
         # Model & View
         self.__model = model
         self.__view = view
-        
+
         # Canvas state
         self.__canvas_state = CanvasSelectionState(self)
 
@@ -103,34 +103,41 @@ class Controller(object):
 
     ''' 'Exit' use case. '''
     def exit_use_case(self):
-     
-        # If there are unsaved changes in the current project
-        if self.__flag_unsaved_changes:   
-            self.__ask_user_to_save_before_action(self.__view.exit)
 
-        # Otherwise, proceed to exit
+        if self.__is_unsaved_project:   
+            self.__ask_user_to_save_before_action(self.__exit)
         else:
-            self.__view.exit()
+            self.__exit()
+
+    ''' Ends the application execution. '''
+    def __exit(self):
+        Gtk.main_quit()
 
     ''' 'New project' use case. '''
     def new_project_use_case(self):
 
-        # If there are unsaved changes
-        if self.__flag_unsaved_changes:
+        if self.__is_unsaved_project:
             self.__ask_user_to_save_before_action(self.__new_project)
-
-        # Otherwise proceed to create a new project
         else:
             self.__new_project()
+
+    ''' New project behaviour. '''
+    def __new_project(self):
+
+        self.__is_new_project = True
+        self.__active_sample_id = None     
+        self.__model.new_project()
+        self.__view.restart()
+
+        # Update state & clear command stacks
+        self.__update(False)
+        self.__clear_command_stacks()
 
     ''' 'Open project' use case '''
     def open_project_use_case(self):
 
-        # If there are unsaved changes
-        if self.__flag_unsaved_changes:
+        if self.__is_unsaved_project:
             self.__ask_user_to_save_before_action(self.__open_project)
-
-        # Otherwise proceed to open an existent project
         else:
             self.__open_project()
 
@@ -144,7 +151,7 @@ class Controller(object):
 
         # Open project
         self.__model.open_project(project_path)
-    
+
         # Update View
         view_store = []
         for (sample_id, sample) in self.__model.get_store().items():
@@ -158,7 +165,7 @@ class Controller(object):
                  comet_view_list
                 )
             ) 
-       
+
         # Restart View
         self.__view.restart()
         # Update View MainWindow title with openned project's name
@@ -172,7 +179,7 @@ class Controller(object):
                 SampleParameters(pixbuf, comet_view_list), None)
 
         # Current project is not a 'new project'
-        self.__flag_project_is_new = False
+        self.__is_new_project = False
         # Update state and clear command stacks
         self.__update(False)
         self.__clear_command_stacks()
@@ -182,7 +189,7 @@ class Controller(object):
 
         # If current project is a 'new project', 'Save project' works as
         # 'Save project as'.
-        if self.__flag_project_is_new:           
+        if self.__is_new_project:           
             return self.save_project_as_use_case()
         self.__save_project()
 
@@ -216,7 +223,7 @@ class Controller(object):
 
         self.__command_stacks_on_project_saved()
         self.__update(False)
-        self.__flag_project_is_new = False
+        self.__is_new_project = False
 
     ''' 'Add samples' use case. '''
     def add_new_samples_use_case(self):
@@ -397,12 +404,12 @@ class Controller(object):
     ''' 'Undo' use case. '''
     def undo_use_case(self):
     
-        unsaved_changes_value = self.__flag_unsaved_changes
+        unsaved_changes_value = self.__is_unsaved_project
 
         command = self.__undo_stack.pop()
-        self.__update(command.get_flag_unsaved_changes())
+        self.__update(command.get_is_unsaved_project())
         command.undo()
-        command.set_flag_unsaved_changes(unsaved_changes_value)
+        command.set_is_unsaved_project(unsaved_changes_value)
         self.__redo_stack.append(command)
 
         self.__view.set_undo_button_sensitivity(len(self.__undo_stack) > 0)
@@ -413,12 +420,12 @@ class Controller(object):
     ''' 'Redo' use case. '''
     def redo_use_case(self):
 
-        unsaved_changes_value = self.__flag_unsaved_changes
+        unsaved_changes_value = self.__is_unsaved_project
 
         command = self.__redo_stack.pop()
-        self.__update(command.get_flag_unsaved_changes())
+        self.__update(command.get_is_unsaved_project())
         command.execute()
-        command.set_flag_unsaved_changes(unsaved_changes_value)
+        command.set_is_unsaved_project(unsaved_changes_value)
         self.__undo_stack.append(command)
 
         self.__view.set_redo_button_sensitivity(len(self.__redo_stack) > 0)
@@ -1481,7 +1488,7 @@ class Controller(object):
 
     ''' Updates the state and the main application window's title. '''
     def __update(self, value):
-        self.__flag_unsaved_changes = value
+        self.__is_unsaved_project = value
         self.__view.set_application_window_title(
             self.__build_application_window_title())
 
@@ -1506,27 +1513,12 @@ class Controller(object):
     ''' Builds and returns main application window title. '''
     def __build_application_window_title(self):
         title = ""
-        if self.__flag_unsaved_changes:
+        if self.__is_unsaved_project:
             title += self.__UNSAVED_CHANGES_SYMBOL
         title += self.__get_project_name()
         title += self.__SEPARATOR + Model.APP_NAME
 
-        return title
-
-    ''' Creates a new project. '''
-    def __new_project(self):
-       
-        self.__active_sample_id = None
-       
-        # New project
-        self.__model.new_project()
-        # Restart View
-        self.__view.restart()
-        # Current project is a 'new project'
-        self.__flag_project_is_new = True
-        # Update state & clear command stacks
-        self.__update(False)
-        self.__clear_command_stacks()   
+        return title   
 
     ''' Add new samples. '''
     def __add_new_samples(self, filepaths):
@@ -1577,9 +1569,9 @@ class Controller(object):
     def __command_stacks_on_project_saved(self):
 
         for command in self.__undo_stack:
-            command.set_flag_unsaved_changes(True)
+            command.set_is_unsaved_project(True)
         for command in self.__redo_stack:
-            command.set_flag_unsaved_changes(True)
+            command.set_is_unsaved_project(True)
 
     ''' Parses a Comet list to a CometView list. '''
     def comet_list_to_comet_view_list(self, comet_list):
@@ -2197,17 +2189,17 @@ class Controller(object):
     def set_active_sample_id(self, active_sample_id):
         self.__active_sample_id = active_sample_id
 
-    def get_flag_unsaved_changes(self):
-        return self.__flag_unsaved_changes
+    def get_is_unsaved_project(self):
+        return self.__is_unsaved_project
 
-    def set_flag_unsaved_changes(self, flag_unsaved_changes):
-        self.__flag_unsaved_changes = flag_unsaved_changes
+    def set_is_unsaved_project(self, is_unsaved_project):
+        self.__is_unsaved_project = is_unsaved_project
 
-    def get_flag_project_is_new(self):
-        return self.__flag_project_is_new
+    def get_is_new_project(self):
+        return self.__is_new_project
 
-    def set_flag_project_is_new(self, flag_project_is_new):
-        self.__flag_project_is_new = flag_project_is_new
+    def set_is_new_project(self, is_new_project):
+        self.__is_new_project = is_new_project
 
     def get_view(self):
         return self.__view

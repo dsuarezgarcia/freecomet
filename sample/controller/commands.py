@@ -33,7 +33,7 @@ class Command(object):
         self._data = None 
 
         # Private Attributes
-        self.__flag_unsaved_changes = controller.get_flag_unsaved_changes()
+        self.__is_unsaved_project = controller.get_is_unsaved_project()
         self.__string = ""
 
 
@@ -54,11 +54,11 @@ class Command(object):
 #                             Getters & Setters                               #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 
-    def get_flag_unsaved_changes(self):
-        return self.__flag_unsaved_changes
+    def get_is_unsaved_project(self):
+        return self.__is_unsaved_project
 
-    def set_flag_unsaved_changes(self, flag_unsaved_changes):
-        self.__flag_unsaved_changes = flag_unsaved_changes
+    def set_is_unsaved_project(self, is_unsaved_project):
+        self.__is_unsaved_project = is_unsaved_project
 
     def get_data(self):
         return self._data

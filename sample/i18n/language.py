@@ -1,8 +1,10 @@
 # -*- encoding: utf-8 -*-
 
 '''
-    The language module.
+    The language enumeration module.
 '''
+
+from enum import Enum
 
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 #                                                                             #
@@ -10,7 +12,7 @@
 #                                                                             #
 # ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ #
 
-class Language(object):
+class Language(Enum):
 
     SPANISH = 'es_ES'
     ENGLISH = 'en_US'
