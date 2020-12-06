@@ -233,10 +233,10 @@ class Controller(object):
 
         if response_id == DialogResponse.ACCEPT:
 
-            # Run LoadSamplesWindow
+            # Show loading window
             self.__view.run_load_samples_window()
 
-            # Run thread to add the Samples and update the LoadSamplesWindow
+            # Run thread to add the Samples and update the loading window after each one
             self.__thread = ThreadWithException(self.__add_new_samples,
                                                 [filenames])
             self.__thread.daemon = True
@@ -1074,58 +1074,53 @@ class Controller(object):
     ''' Analyze samples behaviour. '''
     def __analyze_samples(self, samples_id_list, algorithm_settings):
 
-        try:
+        samples_comet_list_list = []
 
-            # Prepare the AnalyzeSamples command
-            command = commands.AnalyzeSamplesCommand(self)
-            command.set_string(self.__i18n.get_strings().ANALYZE_SAMPLES_COMMAND_STRING)
+        i = 0
+        while (i < len(samples_id_list) and not self.__view.get_analyze_samples_loading_window().get_cancelled()):
 
-            samples_comet_lists = []
-            i = 0
-            # Process each sample
-            while (i < len(samples_id_list) and not 
-                   self.__view.get_analyze_samples_loading_window().\
-                        get_cancelled()):
-
-                # Retrieve Sample from model
+            try:
                 sample = self.__model.get_sample(samples_id_list[i])
-                # Update AnalyzeSamplesLoadingWindow
+
+                # Update loading window
                 GLib.idle_add(self.__view.update_analyze_samples_loading_window,
                     self.__i18n.get_strings().ANALYZING_SAMPLES_WINDOW_LABEL.format(
                         i+1, len(samples_id_list)), sample.get_name())
-     
-                # Sample analyzed flag value previous to analysis
-                analyzed_flag = sample.get_analyzed()
 
                 comet_list = self.__model.analyze_sample(sample, algorithm_settings)
-                samples_comet_lists.append((samples_id_list[i], comet_list, True))
-                i += 1
+                samples_comet_list_list.append((samples_id_list[i], comet_list, True))
 
-            # Operation cannot be cancelled anymore
-            GLib.idle_add(self.__view.get_analyze_samples_loading_window().\
-                get_cancel_button().hide)
+                # Operation cannot be cancelled anymore
+                GLib.idle_add(self.__view.get_analyze_samples_loading_window().\
+                    get_cancel_button().hide)
+             
+            except Exception as e:
+                print("Error: {0}".format(e))
 
-            # Only save if not cancelled
-            if not self.__view.get_analyze_samples_loading_window().get_cancelled():
+            i += 1    
 
-                # Replace in Model
-                data = self.__model.update_samples_comet_list(samples_comet_lists)
+        # Update if operation not cancelled by user
+        if not self.__view.get_analyze_samples_loading_window().get_cancelled():
 
-                samples_comet_view_lists = []
-                for (sample_id, comet_list, _) in samples_comet_lists:
-                    samples_comet_view_lists.append(
-                        (sample_id, self.comet_list_to_comet_view_list(comet_list)))
-                # Replace in View
-                GLib.idle_add(self.replace_samples_comet_view_list,
-                    samples_comet_view_lists)
+            # Update in Model
+            data = self.__model.update_samples_comet_list(samples_comet_list_list)
 
-                # Add AnalyzeSamples command to the stack
-                command.set_data(data)
-                self.__add_command(command)
+            samples_comet_view_lists = []
+            for (sample_id, comet_list, _) in samples_comet_list_list:
+                samples_comet_view_lists.append(
+                    (sample_id, self.comet_list_to_comet_view_list(comet_list)))
 
-        finally:
+            # Update in View
+            GLib.idle_add(self.replace_samples_comet_view_list,
+                samples_comet_view_lists)
 
-            GLib.idle_add(self.__view.close_analyze_samples_loading_window)
+            # Add AnalyzeSamples command to the stack
+            command = commands.AnalyzeSamplesCommand(self)
+            command.set_string(self.__i18n.get_strings().ANALYZE_SAMPLES_COMMAND_STRING)
+            command.set_data(data)
+            self.__add_command(command)
+
+        GLib.idle_add(self.__view.close_analyze_samples_loading_window)
             
     ''' Sets the given comet list for the sample with given ID. '''
     def replace_samples_comet_view_list(self, samples_comet_view_lists):

@@ -303,7 +303,7 @@ class Canvas(object):
 
     ''' Move scrollbars. '''
     def move_scrollbars(self, axis):
-    
+
         x_pos = int(self.__scrolledwindow.get_hadjustment().get_value())
         y_pos = int(self.__scrolledwindow.get_vadjustment().get_value())
         x_value = axis[0] * self.__scroll_speed
@@ -313,7 +313,7 @@ class Canvas(object):
 
     ''' Switch Canvas On. '''
     def switch_on(self):
-    
+
         self.__update_buttons_sensitivity(True)
         self.__view.get_controller().get_canvas_state().update_buttons_sensitivity()
         self.__label.show_all()
@@ -321,10 +321,8 @@ class Canvas(object):
 
     ''' Switch Canvas Off. '''
     def switch_off(self):
-    
-        # Deactivate the canvas buttons
+
         self.__update_buttons_sensitivity(False)
-        # Hide the drawing area
         self.__drawing_area.hide()       
         self.__label.set_label("")
         

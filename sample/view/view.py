@@ -223,6 +223,8 @@ class View(Observer):
         # Canvas
         self.__main_window.get_canvas().get_viewport().connect(
             "scroll-event", self.__on_canvas_scroll_event)
+        self.__main_window.get_canvas().get_viewport().connect(
+            "size-allocate", self.__on_viewport_size_allocate)
         self.__main_window.get_canvas().get_drawing_area().connect(
             "enter-notify-event", self.__on_canvas_mouse_enter)
         self.__main_window.get_canvas().get_drawing_area().connect(
@@ -896,6 +898,11 @@ class View(Observer):
         # Update mouse coordinates
         self.__main_window.get_canvas().set_mouse_coordinates(
             (int(event.x), int(event.y)))
+
+        
+    def __on_viewport_size_allocate(self, viewport, allocation):
+        if self.__controller.get_active_sample_id() is not None:
+            self.__main_window.get_canvas().update()
 
     ''' Canvas 'enter-notify-event' callback. '''
     def __on_canvas_mouse_enter(self, drawing_area, event):
